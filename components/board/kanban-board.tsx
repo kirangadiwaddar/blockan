@@ -24,20 +24,13 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Check, ChevronDown, Bug, BookOpen, CheckSquare, Zap, Flame, AlertTriangle, TrendingDown, Minus } from "lucide-react";
+import { Check, ChevronDown, Bug, BookOpen, CheckSquare, Zap, Flame, AlertTriangle, TrendingDown, Minus, Search, Users } from "lucide-react";
 import { Member } from "@/lib/types";
-import { Settings2, UserPlus, X } from "lucide-react";
-import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
+import { Settings2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const LABEL_PALETTE = ["#6366f1","#3b82f6","#22c55e","#f59e0b","#ef4444","#a855f7","#ec4899","#14b8a6","#f97316","#64748b"];
-function labelColorFn(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return LABEL_PALETTE[h % LABEL_PALETTE.length];
-}
 
 /* ── Column type ─────────────────────────────────────────── */
 
@@ -84,11 +77,10 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
   const [columns, setColumns] = useState<BoardColumn[]>(DEFAULT_COLUMNS);
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null);
   const [filterPriority, setFilterPriority] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string | null>(null);
-  const [filterLabel, setFilterLabel] = useState<string | null>(null);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
 
   const [createSheet, setCreateSheet] = useState<{ open: boolean; status: string }>({
     open: false, status: "Todo",
@@ -123,7 +115,6 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
       if (filterMemberId && !i.assignees.some((a) => a.id === filterMemberId)) return false;
       if (filterPriority && i.priority !== filterPriority) return false;
       if (filterType && i.type !== filterType) return false;
-      if (filterLabel && !(i.labels ?? []).includes(filterLabel)) return false;
       return true;
     }),
     [issues, filterMemberId, filterPriority, filterType],
@@ -161,7 +152,6 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
 
   return (
     <>
-      <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} projectId={projectId} />
       {/* ── Toolbar ── */}
       {(members.length > 0 || toolbarSlot) && (
         <div className="flex items-center gap-10 mb-3">
@@ -169,104 +159,73 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
           <div className="flex items-center gap-2 ml-auto shrink-0">
             {members.length > 0 && (
               <>
-                {/* Clickable avatars — filter board by assignee */}
-                <div className="flex items-center gap-2">
-                  {/* Active filter pill */}
-                  {filterMemberId && (() => {
-                    const fm = members.find((m) => m.id === filterMemberId);
-                    return fm ? (
-                      <div className="flex items-center gap-1.5 bg-muted border border-border rounded-full pl-1 pr-2 py-0.5">
-                        <Avatar className="size-5">
-                          <AvatarImage src={fm.avatar} alt={fm.name} />
-                          <AvatarFallback className="text-[8px]">{fm.initials}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-foreground font-medium">{fm.name.split(" ")[0]}</span>
-                        <button onClick={() => setFilterMemberId(null)} className="text-muted-foreground hover:text-foreground cursor-pointer ml-0.5">
-                          <X size={11} />
-                        </button>
-                      </div>
-                    ) : null;
-                  })()}
-
-                  {/* Avatar row — first 5 visible, rest in overflow dropdown */}
-                  <div className="flex items-center">
-                    {members.slice(0, 5).map((m) => {
-                      const active = filterMemberId === m.id;
-                      return (
-                        <Tooltip key={m.id}>
-                          <TooltipTrigger
-                            render={
-                              <button
-                                onClick={() => setFilterMemberId(active ? null : m.id)}
-                                className={cn(
-                                  "-ml-1 first:ml-0 rounded-full transition-all cursor-pointer relative",
-                                  active
-                                    ? "ring-2 ring-primary ring-offset-2 ring-offset-background z-10"
-                                    : filterMemberId
-                                      ? "opacity-35 hover:opacity-80 hover:z-10"
-                                      : "hover:ring-2 hover:ring-primary/40 hover:ring-offset-1 hover:ring-offset-background hover:z-10",
-                                )}
-                              >
-                                <Avatar className="size-7">
-                                  <AvatarImage src={m.avatar} alt={m.name} />
-                                  <AvatarFallback className="text-xs">{m.initials}</AvatarFallback>
-                                </Avatar>
-                              </button>
-                            }
-                          />
-                          <TooltipContent side="bottom" className="text-xs">
-                            {active ? `Remove: ${m.name}` : `Filter: ${m.name}`}
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
-
-                    {/* Overflow dropdown for extra members */}
-                    {members.length > 5 && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <button className={cn(
-                              "-ml-1 size-7 rounded-full flex items-center justify-center text-xs font-semibold cursor-pointer transition-all",
-                              "bg-muted border border-border hover:bg-accent hover:z-10 relative",
-                              members.slice(5).some((m) => m.id === filterMemberId) && "ring-2 ring-primary ring-offset-2 ring-offset-background z-10"
-                            )}>
-                              +{members.length - 5}
-                            </button>
-                          }
-                        />
-                        <DropdownMenuContent align="end" className="p-1 w-52">
-                          <div className="px-2 py-1 text-xs text-muted-foreground font-medium uppercase tracking-wide">More members</div>
-                          {members.slice(5).map((m) => {
-                            const active = filterMemberId === m.id;
-                            return (
-                              <DropdownMenuItem
-                                key={m.id}
-                                onClick={() => setFilterMemberId(active ? null : m.id)}
-                                className={cn("gap-2 cursor-pointer", active && "bg-muted text-foreground")}
-                              >
-                                <Avatar className="size-6 shrink-0">
-                                  <AvatarImage src={m.avatar} alt={m.name} />
-                                  <AvatarFallback className="text-[9px]">{m.initials}</AvatarFallback>
-                                </Avatar>
-                                <span className="flex-1 truncate text-sm">{m.name}</span>
-                                {active && <Check size={12} className="shrink-0" />}
-                              </DropdownMenuItem>
-                            );
-                          })}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                {/* Assignee filter dropdown */}
+                <DropdownMenu onOpenChange={(open) => { if (!open) setAssigneeSearch(""); }}>
+                  <DropdownMenuTrigger
+                    render={
+                      <button className={cn(
+                        "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
+                        filterMemberId
+                          ? "bg-primary/10 dark:bg-white/10 border-primary/30 dark:border-white/30 text-primary dark:text-white"
+                          : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                      )}>
+                        {filterMemberId ? (() => {
+                          const m = members.find((m) => m.id === filterMemberId);
+                          return m ? (
+                            <span className="flex items-center gap-1.5">
+                              <Avatar className="size-4">
+                                <AvatarImage src={m.avatar} alt={m.name} />
+                                <AvatarFallback className="text-[8px]">{m.initials}</AvatarFallback>
+                              </Avatar>
+                              {m.name.split(" ")[0]}
+                            </span>
+                          ) : "Assignee";
+                        })() : <><Users size={11} className="shrink-0" />Assignee</>}
+                        <ChevronDown size={10} className="shrink-0" />
+                      </button>
+                    }
+                  />
+                  <DropdownMenuContent align="end" className="p-1 w-52">
+                    {/* Search */}
+                    <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border mb-1">
+                      <Search size={12} className="text-muted-foreground shrink-0" />
+                      <input
+                        autoFocus
+                        value={assigneeSearch}
+                        onChange={(e) => setAssigneeSearch(e.target.value)}
+                        placeholder="Search assignee…"
+                        className="flex-1 text-xs bg-transparent outline-none placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    {filterMemberId && (
+                      <DropdownMenuItem onClick={() => setFilterMemberId(null)} className="gap-2 cursor-pointer text-muted-foreground">
+                        <X size={12} /> Clear filter
+                      </DropdownMenuItem>
                     )}
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setInviteOpen(true)}
-                  className="gap-1.5 cursor-pointer rounded-full h-9"
-                >
-                  <UserPlus size={13} /> Invite
-                </Button>
+                    {members
+                      .filter((m) => m.name.toLowerCase().includes(assigneeSearch.toLowerCase()))
+                      .map((m) => {
+                        const active = filterMemberId === m.id;
+                        return (
+                          <DropdownMenuItem
+                            key={m.id}
+                            onClick={() => setFilterMemberId(active ? null : m.id)}
+                            className={cn("gap-2 cursor-pointer", active && "bg-muted text-foreground")}
+                          >
+                            <Avatar className="size-6 shrink-0">
+                              <AvatarImage src={m.avatar} alt={m.name} />
+                              <AvatarFallback className="text-[9px]">{m.initials}</AvatarFallback>
+                            </Avatar>
+                            <span className="flex-1 truncate text-sm">{m.name}</span>
+                            {active && <Check size={12} className="shrink-0" />}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    {members.filter((m) => m.name.toLowerCase().includes(assigneeSearch.toLowerCase())).length === 0 && (
+                      <div className="px-2 py-3 text-xs text-muted-foreground text-center">No members found</div>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
 
@@ -277,7 +236,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                   <button className={cn(
                     "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
                     filterPriority
-                      ? "bg-primary/10 dark:bg-primary/25 border-primary/30 dark:border-primary/50 text-primary"
+                      ? "bg-primary/10 dark:bg-white/10 border-primary/30 dark:border-white/30 text-primary dark:text-white"
                       : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
                   )}>
                     {filterPriority ?? "Priority"}
@@ -315,7 +274,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                   <button className={cn(
                     "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
                     filterType
-                      ? "bg-primary/10 dark:bg-primary/25 border-primary/30 dark:border-primary/50 text-primary"
+                      ? "bg-primary/10 dark:bg-white/10 border-primary/30 dark:border-white/30 text-primary dark:text-white"
                       : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
                   )}>
                     {filterType ?? "Type"}
@@ -348,46 +307,6 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Label filter */}
-            {(() => {
-              const allLabels = [...new Set(issues.flatMap((i) => i.labels ?? []))];
-              if (allLabels.length === 0) return null;
-              return (
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <button className={cn(
-                        "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
-                        filterLabel
-                          ? "bg-primary/10 dark:bg-primary/25 border-primary/30 dark:border-primary/50 text-primary"
-                          : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                      )}>
-                        {filterLabel ?? "Label"}
-                        <ChevronDown size={10} className="shrink-0" />
-                      </button>
-                    }
-                  />
-                  <DropdownMenuContent align="end" className="p-1 w-44">
-                    {filterLabel && (
-                      <DropdownMenuItem onClick={() => setFilterLabel(null)} className="gap-2 cursor-pointer text-muted-foreground">
-                        <X size={12} /> Clear
-                      </DropdownMenuItem>
-                    )}
-                    {allLabels.map((l) => (
-                      <DropdownMenuItem
-                        key={l}
-                        onClick={() => setFilterLabel(filterLabel === l ? null : l)}
-                        className={cn("gap-2 cursor-pointer", filterLabel === l && "bg-muted text-foreground")}
-                      >
-                        <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: labelColorFn(l) }} />
-                        <span className="truncate">{l}</span>
-                        {filterLabel === l && <Check size={11} className="ml-auto shrink-0" />}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              );
-            })()}
 
             {/* Manage columns */}
             <Tooltip>

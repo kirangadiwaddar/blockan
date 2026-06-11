@@ -43,6 +43,7 @@ export type Sprint = {
 export type Project = {
   id: string;
   key: string;
+  code: string;
   name: string;
   description: string;
   color: string;

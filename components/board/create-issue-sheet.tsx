@@ -24,7 +24,6 @@ import {
   ChevronDown, Users, X, Play,
 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
-import { LabelPicker } from "@/components/issue/label-picker";
 import { cn } from "@/lib/utils";
 
 /* ─── Constants ─────────────────────────────────────────── */
@@ -109,7 +108,6 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
   const [dueDate, setDueDate]       = useState("");
   const [sprintId, setSprintId]     = useState<string | undefined>(defaultSprintId);
   const [assignees, setAssignees]   = useState<Member[]>([]);
-  const [labels, setLabels]         = useState<string[]>([]);
 
   // Reset form when opened
   useEffect(() => {
@@ -161,7 +159,6 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
       sprintId: sprintId || undefined,
       storyPoints: points ? parseInt(points) : undefined,
       dueDate: dueDate || undefined,
-      labels,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -184,7 +181,6 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
         reporterId: user.id,
         points: points ? parseInt(points) : undefined,
         dueDate: dueDate || undefined,
-        labels: labels.length > 0 ? labels : undefined,
         code,
       }).catch(console.error).finally(() => setCreating(false));
     }
@@ -359,17 +355,6 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
                 />
               </div>
             </FieldSection>
-
-            {/* Labels */}
-            {project && (
-              <FieldSection label="Labels">
-                <LabelPicker
-                  projectId={project.id}
-                  selected={labels}
-                  onChange={setLabels}
-                />
-              </FieldSection>
-            )}
 
             {/* Reporter (read-only) */}
             <FieldSection label="Reporter">

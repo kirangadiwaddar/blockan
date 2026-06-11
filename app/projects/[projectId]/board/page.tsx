@@ -8,12 +8,13 @@ import { useIssues } from "@/lib/issues-context";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, Download, FileSpreadsheet, FileDown, Loader2 } from "lucide-react";
+import { CalendarDays, Download, FileSpreadsheet, FileDown, Loader2, UserPlus } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
+import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { type Issue } from "@/lib/types";
@@ -66,6 +67,7 @@ function BoardPageContent({ projectId }: { projectId: string }) {
   const { issues: allIssues, loading: issuesLoading } = useIssues();
 
   const [exportModal, setExportModal] = React.useState<{ open: boolean; mode: "xlsx" | "sheets" }>({ open: false, mode: "xlsx" });
+  const [inviteOpen, setInviteOpen] = React.useState(false);
   const [sheetsLoading, setSheetsLoading] = React.useState(false);
   const [sheetsError, setSheetsError] = React.useState<string | null>(null);
 
@@ -138,6 +140,7 @@ function BoardPageContent({ projectId }: { projectId: string }) {
 
   return (
     <AppSidebar>
+      <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} projectId={project?.id ?? ""} />
       <ExportModal
         open={exportModal.open}
         mode={exportModal.mode}
@@ -157,7 +160,16 @@ function BoardPageContent({ projectId }: { projectId: string }) {
             <h1 className="text-xl font-semibold">{project.name}</h1>
           </div>
 
-          {/* Export button */}
+          {/* Invite + Export buttons */}
+          <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setInviteOpen(true)}
+            className="flex items-center gap-2 h-9 px-3.5 rounded-lg border border-input bg-background text-sm hover:bg-muted/50 transition-colors cursor-pointer"
+          >
+            <UserPlus size={14} />
+            Invite
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
@@ -214,6 +226,7 @@ function BoardPageContent({ projectId }: { projectId: string }) {
 
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
 
         {/* Board */}
