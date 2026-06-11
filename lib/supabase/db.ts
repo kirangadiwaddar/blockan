@@ -95,6 +95,7 @@ export async function fetchProjects(): Promise<Project[]> {
       id: row.key.toLowerCase(),   // URL slug
       _uuid: row.id,               // Real DB uuid (stored for mutations)
       key: row.key,
+      code: row.code ?? `${row.key}-${Math.floor(1000 + Math.random() * 9000)}`,
       name: row.name,
       description: row.description ?? "",
       color: normalizeProjectColor(row.color),
@@ -127,6 +128,7 @@ export async function createProject(data: {
     .insert({
       name: data.name,
       key: data.key.toUpperCase(),
+      code: `${data.key.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
       description: data.description,
       color: data.color,
       owner_id: data.ownerId,

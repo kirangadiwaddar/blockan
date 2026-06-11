@@ -24,7 +24,7 @@ import { MemberPicker } from "@/components/ui/member-picker";
 import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronDown, CalendarDays, User, Tag, Layers, Play,
-  MessageSquare, Clock, X, Pencil, Check, Trash2, Tags,
+  MessageSquare, Clock, X, Pencil, Check, Trash2,
 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -33,7 +33,6 @@ import { Lightbox } from "@/components/ui/lightbox";
 import { cn } from "@/lib/utils";
 import { fetchIssueActivities, updateIssueLabels, type IssueActivity } from "@/lib/supabase/db";
 import { Link2, ArrowRight, UserCheck, Flag, GitBranch } from "lucide-react";
-import { LabelPicker } from "@/components/issue/label-picker";
 
 /* ─── Config ─────────────────────────────────────────────── */
 
@@ -534,17 +533,6 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </DetailRow>
-                  {/* Labels */}
-                  <DetailRow icon={Tags} label="Labels">
-                    <LabelPicker
-                      projectId={issue.projectId}
-                      selected={issue.labels ?? []}
-                      onChange={(labels) => {
-                        update({ labels });
-                        updateIssueLabels(issue.id, labels).catch(console.error);
-                      }}
-                    />
                   </DetailRow>
                 </tbody>
               </table>

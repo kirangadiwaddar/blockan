@@ -30,15 +30,6 @@ const priorityClass = {
 
 const MAX_AVATARS = 3;
 
-const LABEL_COLORS = [
-  "#6366f1","#3b82f6","#22c55e","#f59e0b",
-  "#ef4444","#a855f7","#ec4899","#14b8a6","#f97316","#64748b",
-];
-function labelColor(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return LABEL_COLORS[h % LABEL_COLORS.length];
-}
 
 interface Props {
   issue: Issue;
@@ -135,19 +126,6 @@ export function IssueCard({ issue, overlay, onClick, onDelete }: Props) {
               {issue.title}
             </p>
 
-          {issue.labels && issue.labels.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {issue.labels.map((l) => (
-                <span
-                  key={l}
-                  className="inline-flex items-center text-[10px] font-medium rounded-full px-1.5 py-0.5 text-white"
-                  style={{ backgroundColor: labelColor(l) }}
-                >
-                  {l}
-                </span>
-              ))}
-            </div>
-          )}
 
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">

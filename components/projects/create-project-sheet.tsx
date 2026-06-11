@@ -44,6 +44,7 @@ export function CreateProjectSheet({ open, onOpenChange, onCreated }: Props) {
     const project: Project = {
       id:          key.toLowerCase().replace(/\s+/g, "-"),
       key:         key.toUpperCase().slice(0, 6),
+      code:        `${key.toUpperCase().slice(0, 6)}-${Math.floor(1000 + Math.random() * 9000)}`,
       name:        name.trim(),
       description: desc.trim() || `${name.trim()} project`,
       color,

@@ -13,6 +13,7 @@ export const projects: Project[] = [
   {
     id: "ph",
     key: "PH",
+    code: "PH-4821",
     name: "Phoenix App",
     description: "Mobile-first rewrite of the customer app with React Native",
     color: "avatar-orb-amber",
@@ -26,6 +27,7 @@ export const projects: Project[] = [
   {
     id: "or",
     key: "OR",
+    code: "OR-7293",
     name: "Orion Backend",
     description: "Microservices migration from monolith, targeting Go & gRPC",
     color: "avatar-orb-blue",
@@ -39,6 +41,7 @@ export const projects: Project[] = [
   {
     id: "we",
     key: "WE",
+    code: "WE-1156",
     name: "Web Redesign",
     description: "Complete visual overhaul of the marketing site and docs",
     color: "avatar-orb-violet",
@@ -52,6 +55,7 @@ export const projects: Project[] = [
   {
     id: "ad",
     key: "AD",
+    code: "AD-6047",
     name: "App Development",
     description: "Internal tooling and admin panel for operations team",
     color: "avatar-orb-emerald",
@@ -65,6 +69,7 @@ export const projects: Project[] = [
   {
     id: "rd",
     key: "RD",
+    code: "RD-3318",
     name: "Responsive Design",
     description: "Audit and fix responsive breakpoints across all web properties",
     color: "avatar-orb-pink",

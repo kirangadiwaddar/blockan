@@ -27,7 +27,10 @@ export function ProjectCard({ project, onDelete }: { project: Project; onDelete?
         <div className="flex items-start gap-3">
           <div className={`avatar-orb ${project.color} size-11 rounded-full shrink-0 mt-0.5`} />
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold truncate leading-snug">{project.name}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-semibold truncate leading-snug">{project.name}</p>
+              <span className="text-[10px] font-mono text-muted-foreground shrink-0">{project.code}</span>
+            </div>
             <p className="text-xs text-muted-foreground truncate mt-0.5">
               {project.description || `${project.key} · ${project.members.length} members`}
             </p>
