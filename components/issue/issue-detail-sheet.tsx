@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useComments } from "@/lib/comments-context";
 import { useProjects } from "@/lib/projects-context";
 import { useUser } from "@/lib/supabase/user-context";
@@ -24,13 +24,16 @@ import { MemberPicker } from "@/components/ui/member-picker";
 import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronDown, CalendarDays, User, Tag, Layers, Play,
-  MessageSquare, Clock, X, Pencil, Check, Trash2,
+  MessageSquare, Clock, X, Pencil, Check, Trash2, Tags,
 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Lightbox } from "@/components/ui/lightbox";
 import { cn } from "@/lib/utils";
+import { fetchIssueActivities, updateIssueLabels, type IssueActivity } from "@/lib/supabase/db";
+import { Link2, ArrowRight, UserCheck, Flag, GitBranch } from "lucide-react";
+import { LabelPicker } from "@/components/issue/label-picker";
 
 /* ─── Config ─────────────────────────────────────────────── */
 
@@ -100,6 +103,34 @@ function InlineSelect({ children, className }: { children: React.ReactNode; clas
   );
 }
 
+/* ─── Share button ───────────────────────────────────────── */
+
+function ShareIssueButton({ projectId, issueId }: { projectId: string; issueId: string }) {
+  const [copied, setCopied] = useState(false);
+  const href = `/projects/${projectId}/issues/${issueId}`;
+  return (
+    <button
+      title="Copy shareable link"
+      onClick={() => {
+        const url = `${window.location.origin}${href}`;
+        navigator.clipboard.writeText(url).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        });
+      }}
+      className={cn(
+        "p-1 rounded-md transition-colors cursor-pointer text-xs flex items-center gap-1",
+        copied
+          ? "text-green-600 dark:text-green-400"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      )}
+    >
+      <Link2 size={13} />
+      {copied && <span className="text-[10px] font-medium">Copied!</span>}
+    </button>
+  );
+}
+
 /* ─── Main ────────────────────────────────────────────────── */
 
 interface Props {
@@ -115,6 +146,7 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
   const { user, displayName, avatarUrl, initials } = useUser();
 
   const comments = issue ? getComments(issue.id) : [];
+  const [activities, setActivities] = useState<IssueActivity[]>([]);
   const [draft, setDraft] = useState("");
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -123,16 +155,21 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
   const [editingDesc, setEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState(issue?.description ?? "");
 
+  const refreshActivities = useCallback((issueId: string) => {
+    fetchIssueActivities(issueId).then(setActivities).catch(() => setActivities([]));
+  }, []);
+
   // Load existing comments from DB whenever a new issue is opened
   useEffect(() => {
     if (issue && open) {
       loadComments(issue.id);
+      refreshActivities(issue.id);
       setTitleValue(issue.title);
       setDescValue(issue.description ?? "");
       setEditingTitle(false);
       setEditingDesc(false);
     }
-  }, [issue?.id, open, loadComments]);
+  }, [issue?.id, open, loadComments, refreshActivities]);
 
   if (!issue) return null;
 
@@ -168,6 +205,30 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
       authorAvatar: avatarUrl || undefined,
       body: html,
     });
+    // Notify issue reporter and assignees (skip self)
+    if (user?.id) {
+      import("@/lib/supabase/db").then(({ createNotification }) => {
+        const actorId = user.id!;
+        const snippet = html.replace(/<[^>]+>/g, "").slice(0, 80);
+        const targets = new Set([
+          issue.reporter.id,
+          ...issue.assignees.map((a) => a.id),
+        ]);
+        targets.delete(actorId);
+        targets.forEach((uid) => {
+          if (uid && uid !== "unknown") {
+            createNotification({
+              userId: uid,
+              type: "comment",
+              title: `${displayName || "Someone"} commented on ${issue.code ?? "an issue"}`,
+              body: snippet,
+              issueId: issue.id,
+              actorId,
+            }).catch(() => {});
+          }
+        });
+      });
+    }
   };
 
   const fmtDate = (d: string) =>
@@ -188,6 +249,7 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
             <span className="text-xs font-mono text-muted-foreground">{issue.code}</span>
             <div className="ml-auto flex items-center gap-2">
               <Badge variant="outline" className="text-xs font-normal capitalize">{issue.type}</Badge>
+              <ShareIssueButton projectId={issue.projectId} issueId={issue.id} />
               <button
                 onClick={() => onOpenChange(false)}
                 className="p-1 rounded-md hover:bg-muted transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
@@ -356,7 +418,7 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                 <AvatarGroup>
                                   {issue.assignees.slice(0, 3).map((a) => (
-                                    <Avatar key={a.id} size="sm"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback>{a.initials}</AvatarFallback></Avatar>
+                                    <Avatar key={a.id} className="size-7 ring-2 ring-background"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback>{a.initials}</AvatarFallback></Avatar>
                                   ))}
                                   {issue.assignees.length > 3 && <AvatarGroupCount className="text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>}
                                 </AvatarGroup>
@@ -389,7 +451,7 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                   {/* Reporter */}
                   <DetailRow icon={User} label="Reporter">
                     <div className="flex items-center gap-2 px-1.5 py-1">
-                      <Avatar size="sm"><AvatarImage src={issue.reporter.avatar} alt={issue.reporter.name} /><AvatarFallback>{issue.reporter.initials}</AvatarFallback></Avatar>
+                      <Avatar className="size-7"><AvatarImage src={issue.reporter.avatar} alt={issue.reporter.name} /><AvatarFallback>{issue.reporter.initials}</AvatarFallback></Avatar>
                       <span className="text-sm font-medium">{issue.reporter.name}</span>
                     </div>
                   </DetailRow>
@@ -473,6 +535,17 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </DetailRow>
+                  {/* Labels */}
+                  <DetailRow icon={Tags} label="Labels">
+                    <LabelPicker
+                      projectId={issue.projectId}
+                      selected={issue.labels ?? []}
+                      onChange={(labels) => {
+                        update({ labels });
+                        updateIssueLabels(issue.id, labels).catch(console.error);
+                      }}
+                    />
+                  </DetailRow>
                 </tbody>
               </table>
               </div>
@@ -509,7 +582,7 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
               {/* Discussion comments */}
               {comments.map((c) => (
                 <div key={c.id} className="flex gap-3 group/comment">
-                  <Avatar size="sm" className="shrink-0 mt-1">
+                  <Avatar className="size-7 shrink-0 mt-1">
                     <AvatarImage src={c.authorAvatar} alt={c.authorName} />
                     <AvatarFallback className="text-xs">{c.authorInitials}</AvatarFallback>
                   </Avatar>
@@ -579,7 +652,7 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
 
               {/* Rich text composer */}
               <div className="flex gap-3">
-                <Avatar size="sm" className="shrink-0 mt-1">
+                <Avatar className="size-7 shrink-0 mt-1">
                   <AvatarImage src={avatarUrl} alt={displayName} />
                   <AvatarFallback className="text-xs">{initials || "?"}</AvatarFallback>
                 </Avatar>
@@ -592,6 +665,56 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                   />
                 </div>
               </div>
+            </div>
+
+            <Separator />
+
+            {/* Activity Log */}
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-semibold">Activity</h3>
+
+              {activities.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2">No activity recorded yet. Changes to status, priority, and assignees will appear here.</p>
+              ) : (
+                <div className="flex flex-col gap-0">
+                  {activities.map((act, idx) => (
+                    <div key={act.id} className="flex gap-3 py-2 relative">
+                      {idx < activities.length - 1 && (
+                        <div className="absolute left-[13px] top-8 bottom-0 w-px bg-border" />
+                      )}
+                      <div className="size-7 rounded-full bg-muted flex items-center justify-center shrink-0 z-10">
+                        {act.eventType === "status_changed"   && <GitBranch size={12} className="text-blue-500" />}
+                        {act.eventType === "priority_changed" && <Flag size={12} className="text-orange-500" />}
+                        {act.eventType === "assignee_changed" && <UserCheck size={12} className="text-green-500" />}
+                        {act.eventType === "created"          && <Link2 size={12} className="text-muted-foreground" />}
+                        {act.eventType === "title_changed"    && <Pencil size={12} className="text-muted-foreground" />}
+                        {act.eventType === "sprint_changed"   && <Layers size={12} className="text-purple-500" />}
+                      </div>
+                      <div className="flex-1 min-w-0 pt-1">
+                        <span className="text-xs font-medium">{act.actorName}</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          {act.eventType === "status_changed"   && "changed status"}
+                          {act.eventType === "priority_changed" && "changed priority"}
+                          {act.eventType === "assignee_changed" && "changed assignee"}
+                          {act.eventType === "created"          && "created this issue"}
+                          {act.eventType === "title_changed"    && "updated title"}
+                          {act.eventType === "sprint_changed"   && "changed sprint"}
+                        </span>
+                        {act.fromValue && act.toValue && (
+                          <span className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
+                            <span className="line-through opacity-60">{act.fromValue}</span>
+                            <ArrowRight size={10} />
+                            <span className="font-medium text-foreground">{act.toValue}</span>
+                          </span>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          <Clock size={9} className="inline mr-0.5" />{relativeTime(act.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

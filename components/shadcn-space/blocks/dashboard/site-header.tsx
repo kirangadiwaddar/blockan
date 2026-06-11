@@ -2,7 +2,8 @@
 
 import { useTheme } from "@/components/providers";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import NotificationDropdown from "@/components/shadcn-space/blocks/dashboard/notification-dropdown";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { ShortcutsDialog } from "@/components/shortcuts-dialog";
 import { SearchIcon, Moon, Sun } from "lucide-react";
 import { CommandPalette } from "@/components/search/command-palette";
 
@@ -23,6 +24,7 @@ export function SiteHeader() {
   return (
     <>
       <CommandPalette />
+      <ShortcutsDialog />
       <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="-ml-1 h-8 w-8 cursor-pointer" />
@@ -42,7 +44,7 @@ export function SiteHeader() {
         </div>
         <div className="flex items-center gap-1">
           <ThemeToggle />
-          <NotificationDropdown defaultOpen={false} align="center" />
+          <NotificationBell />
         </div>
       </div>
     </>

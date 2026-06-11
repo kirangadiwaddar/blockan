@@ -72,6 +72,16 @@ const statusDot: Record<string, string> = {
   "Reviewing": "bg-purple-500", "Completed": "bg-green-500",
 };
 
+const LABEL_COLORS = [
+  "#6366f1","#3b82f6","#22c55e","#f59e0b",
+  "#ef4444","#a855f7","#ec4899","#14b8a6","#f97316","#64748b",
+];
+function labelColor(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return LABEL_COLORS[h % LABEL_COLORS.length];
+}
+
 function fmt(d: string) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
@@ -214,7 +224,18 @@ function SprintCard({
                           <span className="text-xs font-mono text-muted-foreground">{issue.code}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm font-medium">{issue.title}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-medium">{issue.title}</span>
+                            {(issue.labels ?? []).map((l) => (
+                              <span
+                                key={l}
+                                className="inline-flex items-center text-[10px] font-medium rounded-full px-1.5 py-0.5 text-white shrink-0"
+                                style={{ backgroundColor: labelColor(l) }}
+                              >
+                                {l}
+                              </span>
+                            ))}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-start gap-1.5">
@@ -243,7 +264,7 @@ function SprintCard({
                         <TableCell>
                           <AvatarGroup>
                             {issue.assignees.slice(0, 3).map((a) => (
-                              <Avatar key={a.id} size="sm">
+                              <Avatar key={a.id} className="size-7 ring-2 ring-background">
                                 <AvatarImage src={a.avatar} alt={a.name} />
                                 <AvatarFallback>{a.initials}</AvatarFallback>
                               </Avatar>

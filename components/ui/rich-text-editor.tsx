@@ -247,7 +247,7 @@ export function RichTextEditor({
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const item of Array.from(items)) {
-        if (item.type.startsWith("image/")) {
+        if (item.type.startsWith("image/") || item.type === "image/svg+xml") {
           const file = item.getAsFile();
           if (file) { e.preventDefault(); handleImageFile(file); }
         }
@@ -270,7 +270,7 @@ export function RichTextEditor({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.svg,image/svg+xml"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

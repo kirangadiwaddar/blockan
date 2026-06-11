@@ -36,10 +36,10 @@ export function KanbanColumn({ colId, label, dot, issues, onAddIssue, onIssueCli
     <div className="flex flex-col w-72 shrink-0 rounded-2xl border border-border/60 bg-muted/30 dark:bg-muted/10 overflow-hidden shadow-xs">
 
       {/* ── Column header ── */}
-      <div className="px-3.5 pt-3.5 pb-3 flex items-center justify-between pb-5">
+      <div className="px-3.5 pt-3.5 pb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {/* coloured top-bar dot */}
-          <span className={cn("size-2 rounded-full shrink-0", colTheme[colId] ? theme.bar : dot)} />
+          <span className={cn("size-2 rounded-full shrink-0", theme.bar)} />
           <span className="text-sm font-semibold text-foreground">{label}</span>
           <span className={cn("inline-flex items-center justify-center rounded-full text-[11px] font-semibold px-1.5 min-w-[20px] h-5", theme.count)}>
             {issues.length}
@@ -62,7 +62,7 @@ export function KanbanColumn({ colId, label, dot, issues, onAddIssue, onIssueCli
       <div
         ref={setNodeRef}
         className={cn(
-          "flex flex-col gap-3 flex-1 min-h-24 px-2.5 pb-2.5 transition-colors duration-150 rounded-2xl p-3 bg-background/60 dark:bg-muted/5",
+          "flex flex-col gap-3 flex-1 min-h-24 px-2.5 pb-2.5 transition-colors duration-150 rounded-2xl p-3 bg-white",
           isOver && "bg-muted/60 dark:bg-muted/30",
         )}
       >

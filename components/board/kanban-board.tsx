@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useIssues } from "@/lib/issues-context";
 import {
   DndContext,
@@ -26,11 +26,18 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Check } from "lucide-react";
+import { Check, ChevronDown, Bug, BookOpen, CheckSquare, Zap, Flame, AlertTriangle, TrendingDown, Minus } from "lucide-react";
 import { Member } from "@/lib/types";
 import { Settings2, UserPlus, X } from "lucide-react";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 import { cn } from "@/lib/utils";
+
+const LABEL_PALETTE = ["#6366f1","#3b82f6","#22c55e","#f59e0b","#ef4444","#a855f7","#ec4899","#14b8a6","#f97316","#64748b"];
+function labelColorFn(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return LABEL_PALETTE[h % LABEL_PALETTE.length];
+}
 
 /* ── Column type ─────────────────────────────────────────── */
 
@@ -55,9 +62,10 @@ interface Props {
   projectId?: string;
   activeSprintId?: string;
   toolbarSlot?: React.ReactNode;
+  defaultOpenIssueId?: string;
 }
 
-export function KanbanBoard({ initialIssues, members = [], projectId: propProjectId, activeSprintId, toolbarSlot }: Props) {
+export function KanbanBoard({ initialIssues, members = [], projectId: propProjectId, activeSprintId, toolbarSlot, defaultOpenIssueId }: Props) {
   const { issues: allIssues, updateIssue, addIssue: addToCtx, deleteIssue } = useIssues();
   const projectId = propProjectId ?? initialIssues[0]?.projectId;
   const issues = useMemo(
@@ -78,6 +86,9 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
   const [manageOpen, setManageOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null);
+  const [filterPriority, setFilterPriority] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<string | null>(null);
+  const [filterLabel, setFilterLabel] = useState<string | null>(null);
 
   const [createSheet, setCreateSheet] = useState<{ open: boolean; status: string }>({
     open: false, status: "Todo",
@@ -86,6 +97,21 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
     open: false, issue: null,
   });
 
+  useEffect(() => {
+    if (!defaultOpenIssueId) return;
+    const issue = issues.find((i) => i.id === defaultOpenIssueId);
+    if (issue) {
+      setDetailSheet({ open: true, issue });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultOpenIssueId]);
+
+  useEffect(() => {
+    const openCreate = () => setCreateSheet({ open: true, status: "Todo" });
+    window.addEventListener("blockan:create-issue", openCreate);
+    return () => window.removeEventListener("blockan:create-issue", openCreate);
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
@@ -93,10 +119,14 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
   const visibleColumns = columns.filter((c) => c.visible);
   const columnIds = visibleColumns.map((c) => c.id);
   const filteredIssues = useMemo(
-    () => filterMemberId
-      ? issues.filter((i) => i.assignees.some((a) => a.id === filterMemberId))
-      : issues,
-    [issues, filterMemberId],
+    () => issues.filter((i) => {
+      if (filterMemberId && !i.assignees.some((a) => a.id === filterMemberId)) return false;
+      if (filterPriority && i.priority !== filterPriority) return false;
+      if (filterType && i.type !== filterType) return false;
+      if (filterLabel && !(i.labels ?? []).includes(filterLabel)) return false;
+      return true;
+    }),
+    [issues, filterMemberId, filterPriority, filterType],
   );
   const getByStatus = (id: string) => filteredIssues.filter((i) => i.status === id);
 
@@ -239,6 +269,125 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                 </Button>
               </>
             )}
+
+            {/* Priority filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <button className={cn(
+                    "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
+                    filterPriority
+                      ? "bg-primary/10 border-primary/30 text-primary"
+                      : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                  )}>
+                    {filterPriority ?? "Priority"}
+                    <ChevronDown size={10} className="shrink-0" />
+                  </button>
+                }
+              />
+              <DropdownMenuContent align="end" className="p-1 w-40">
+                {filterPriority && (
+                  <DropdownMenuItem onClick={() => setFilterPriority(null)} className="gap-2 cursor-pointer text-muted-foreground">
+                    <X size={12} /> Clear
+                  </DropdownMenuItem>
+                )}
+                {["Critical", "High", "Medium", "Low"].map((p) => (
+                  <DropdownMenuItem
+                    key={p}
+                    onClick={() => setFilterPriority(filterPriority === p ? null : p)}
+                    className={cn("gap-2 cursor-pointer", filterPriority === p && "bg-primary/10 text-primary")}
+                  >
+                    {p === "Critical" && <Flame size={12} className="text-destructive shrink-0" />}
+                    {p === "High"     && <AlertTriangle size={12} className="text-orange-500 shrink-0" />}
+                    {p === "Medium"   && <Minus size={12} className="text-yellow-500 shrink-0" />}
+                    {p === "Low"      && <TrendingDown size={12} className="text-muted-foreground shrink-0" />}
+                    {p}
+                    {filterPriority === p && <Check size={11} className="ml-auto" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Type filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <button className={cn(
+                    "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
+                    filterType
+                      ? "bg-primary/10 border-primary/30 text-primary"
+                      : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                  )}>
+                    {filterType ?? "Type"}
+                    <ChevronDown size={10} className="shrink-0" />
+                  </button>
+                }
+              />
+              <DropdownMenuContent align="end" className="p-1 w-40">
+                {filterType && (
+                  <DropdownMenuItem onClick={() => setFilterType(null)} className="gap-2 cursor-pointer text-muted-foreground">
+                    <X size={12} /> Clear
+                  </DropdownMenuItem>
+                )}
+                {[
+                  { value: "Bug",   icon: Bug,         color: "text-red-500"   },
+                  { value: "Story", icon: BookOpen,    color: "text-blue-500"  },
+                  { value: "Task",  icon: CheckSquare, color: "text-green-500" },
+                  { value: "Epic",  icon: Zap,         color: "text-purple-500"},
+                ].map(({ value, icon: Icon, color }) => (
+                  <DropdownMenuItem
+                    key={value}
+                    onClick={() => setFilterType(filterType === value ? null : value)}
+                    className={cn("gap-2 cursor-pointer", filterType === value && "bg-primary/10 text-primary")}
+                  >
+                    <Icon size={12} className={cn("shrink-0", filterType === value ? "text-primary" : color)} />
+                    {value}
+                    {filterType === value && <Check size={11} className="ml-auto" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Label filter */}
+            {(() => {
+              const allLabels = [...new Set(issues.flatMap((i) => i.labels ?? []))];
+              if (allLabels.length === 0) return null;
+              return (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <button className={cn(
+                        "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
+                        filterLabel
+                          ? "bg-primary/10 border-primary/30 text-primary"
+                          : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                      )}>
+                        {filterLabel ?? "Label"}
+                        <ChevronDown size={10} className="shrink-0" />
+                      </button>
+                    }
+                  />
+                  <DropdownMenuContent align="end" className="p-1 w-44">
+                    {filterLabel && (
+                      <DropdownMenuItem onClick={() => setFilterLabel(null)} className="gap-2 cursor-pointer text-muted-foreground">
+                        <X size={12} /> Clear
+                      </DropdownMenuItem>
+                    )}
+                    {allLabels.map((l) => (
+                      <DropdownMenuItem
+                        key={l}
+                        onClick={() => setFilterLabel(filterLabel === l ? null : l)}
+                        className={cn("gap-2 cursor-pointer", filterLabel === l && "bg-primary/10 text-primary")}
+                      >
+                        <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: labelColorFn(l) }} />
+                        <span className="truncate">{l}</span>
+                        {filterLabel === l && <Check size={11} className="ml-auto shrink-0" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            })()}
 
             {/* Manage columns */}
             <Tooltip>
