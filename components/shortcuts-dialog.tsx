@@ -33,8 +33,8 @@ export function ShortcutsDialog() {
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b">
           <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Keyboard size={15} className="text-primary" />
+            <div className="size-8 rounded-lg bg-muted flex items-center justify-center">
+              <Keyboard size={15} className="text-foreground" />
             </div>
             <h2 className="text-sm font-semibold">Keyboard shortcuts</h2>
           </div>

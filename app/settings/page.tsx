@@ -56,11 +56,11 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
       onClick={onToggle}
       className={cn(
         "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        on ? "bg-primary" : "bg-muted",
+        on ? "bg-muted-foreground/80" : "bg-muted-foreground/30",
       )}
     >
       <span className={cn(
-        "pointer-events-none inline-block size-4 rounded-full bg-background shadow-sm transition-transform",
+        "pointer-events-none inline-block size-4 rounded-full bg-white shadow-sm transition-transform",
         on ? "translate-x-4" : "translate-x-0",
       )} />
     </button>
@@ -297,7 +297,7 @@ export default function SettingsPage() {
   /* ── Render ── */
   return (
     <AppSidebar>
-      <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto w-full">
+      <div className="flex flex-col gap-6 p-6 w-full max-w-7xl">
         <div>
           <h1 className="text-xl font-semibold">Settings</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Manage your account and workspace preferences</p>
@@ -433,37 +433,6 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="flex flex-col gap-6">
 
-                  {/* Theme toggle */}
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm font-medium">Color scheme</p>
-                    <div className="grid grid-cols-2 gap-3 max-w-xs">
-                      {(["light", "dark"] as const).map((t) => (
-                        <button
-                          key={t}
-                          onClick={() => { if (theme !== t) toggleTheme(); }}
-                          className={cn(
-                            "flex flex-col items-center gap-2.5 p-4 rounded-xl border-2 cursor-pointer transition-all",
-                            theme === t
-                              ? "border-primary bg-primary/5 shadow-sm"
-                              : "border-border hover:border-muted-foreground",
-                          )}
-                        >
-                          {t === "light"
-                            ? <Sun size={20} className={theme === "light" ? "text-primary" : ""} />
-                            : <Moon size={20} className={theme === "dark" ? "text-primary" : ""} />}
-                          <span className="text-sm font-medium capitalize">{t}</span>
-                          {theme === t && (
-                            <span className="flex items-center gap-1 text-xs text-primary font-medium">
-                              <Check size={10} /> Active
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Separator />
-
                   {/* Accent colors */}
                   <div className="flex flex-col gap-3">
                     <div>
@@ -498,17 +467,6 @@ export default function SettingsPage() {
                           </span>
                         </button>
                       ))}
-                    </div>
-
-                    {/* Live preview */}
-                    <div className="mt-1 flex flex-col gap-2 p-4 rounded-xl border bg-muted/30">
-                      <p className="text-xs text-muted-foreground mb-1">Preview</p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Button size="sm" className="cursor-default">Primary button</Button>
-                        <Button size="sm" variant="outline" className="cursor-default">Outline</Button>
-                        <Badge className="bg-primary/10 text-primary font-normal">Badge</Badge>
-                        <span className="text-sm text-primary underline underline-offset-2 cursor-default">Link</span>
-                      </div>
                     </div>
                   </div>
                 </CardContent>

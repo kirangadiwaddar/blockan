@@ -264,7 +264,7 @@ function SprintCard({
                         <TableCell>
                           <AvatarGroup>
                             {issue.assignees.slice(0, 3).map((a) => (
-                              <Avatar key={a.id} className="size-7 ring-2 ring-background">
+                              <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted">
                                 <AvatarImage src={a.avatar} alt={a.name} />
                                 <AvatarFallback>{a.initials}</AvatarFallback>
                               </Avatar>
@@ -383,7 +383,7 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
   if (!project && (projectsLoading || issuesLoading)) {
     return (
       <AppSidebar>
-        <div className="flex flex-col gap-5 p-6 max-w-6xl mx-auto w-full">
+        <div className="flex flex-col gap-5 p-6 w-full">
           <div className="flex items-center gap-3">
             <Skeleton className="size-7 rounded-lg" />
             <Skeleton className="h-6 w-48" />

@@ -116,7 +116,7 @@ export default function TeamPage() {
 
   return (
     <AppSidebar>
-      <div className="flex flex-col gap-4 p-5 max-w-6xl mx-auto w-full">
+      <div className="flex flex-col gap-4 p-5 w-full">
 
         {/* Header */}
         <div className="flex items-center justify-between gap-3 flex-wrap">

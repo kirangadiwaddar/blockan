@@ -73,7 +73,7 @@ export function ProjectCard({ project, onDelete }: { project: Project; onDelete?
         <div className="flex items-center gap-2">
           <AvatarGroup>
             {project.members.slice(0, 4).map((m) => (
-              <Avatar key={m.id} className="size-6 ring-1 ring-background">
+              <Avatar key={m.id} className="size-6 ring-1 ring-background dark:ring-muted">
                 <AvatarImage src={m.avatar} alt={m.name} />
                 <AvatarFallback className="text-[9px]">{m.initials}</AvatarFallback>
               </Avatar>

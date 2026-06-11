@@ -175,13 +175,13 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                   {filterMemberId && (() => {
                     const fm = members.find((m) => m.id === filterMemberId);
                     return fm ? (
-                      <div className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-full pl-1 pr-2 py-0.5">
+                      <div className="flex items-center gap-1.5 bg-muted border border-border rounded-full pl-1 pr-2 py-0.5">
                         <Avatar className="size-5">
                           <AvatarImage src={fm.avatar} alt={fm.name} />
                           <AvatarFallback className="text-[8px]">{fm.initials}</AvatarFallback>
                         </Avatar>
-                        <span className="text-xs text-primary font-medium">{fm.name.split(" ")[0]}</span>
-                        <button onClick={() => setFilterMemberId(null)} className="text-primary/60 hover:text-primary cursor-pointer ml-0.5">
+                        <span className="text-xs text-foreground font-medium">{fm.name.split(" ")[0]}</span>
+                        <button onClick={() => setFilterMemberId(null)} className="text-muted-foreground hover:text-foreground cursor-pointer ml-0.5">
                           <X size={11} />
                         </button>
                       </div>
@@ -243,7 +243,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                               <DropdownMenuItem
                                 key={m.id}
                                 onClick={() => setFilterMemberId(active ? null : m.id)}
-                                className={cn("gap-2 cursor-pointer", active && "bg-primary/10 text-primary")}
+                                className={cn("gap-2 cursor-pointer", active && "bg-muted text-foreground")}
                               >
                                 <Avatar className="size-6 shrink-0">
                                   <AvatarImage src={m.avatar} alt={m.name} />
@@ -277,7 +277,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                   <button className={cn(
                     "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
                     filterPriority
-                      ? "bg-primary/10 border-primary/30 text-primary"
+                      ? "bg-primary/10 dark:bg-primary/25 border-primary/30 dark:border-primary/50 text-primary"
                       : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
                   )}>
                     {filterPriority ?? "Priority"}
@@ -295,7 +295,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                   <DropdownMenuItem
                     key={p}
                     onClick={() => setFilterPriority(filterPriority === p ? null : p)}
-                    className={cn("gap-2 cursor-pointer", filterPriority === p && "bg-primary/10 text-primary")}
+                    className={cn("gap-2 cursor-pointer", filterPriority === p && "bg-muted text-foreground")}
                   >
                     {p === "Critical" && <Flame size={12} className="text-destructive shrink-0" />}
                     {p === "High"     && <AlertTriangle size={12} className="text-orange-500 shrink-0" />}
@@ -315,7 +315,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                   <button className={cn(
                     "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
                     filterType
-                      ? "bg-primary/10 border-primary/30 text-primary"
+                      ? "bg-primary/10 dark:bg-primary/25 border-primary/30 dark:border-primary/50 text-primary"
                       : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
                   )}>
                     {filterType ?? "Type"}
@@ -338,7 +338,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                   <DropdownMenuItem
                     key={value}
                     onClick={() => setFilterType(filterType === value ? null : value)}
-                    className={cn("gap-2 cursor-pointer", filterType === value && "bg-primary/10 text-primary")}
+                    className={cn("gap-2 cursor-pointer", filterType === value && "bg-muted text-foreground")}
                   >
                     <Icon size={12} className={cn("shrink-0", filterType === value ? "text-primary" : color)} />
                     {value}
@@ -359,7 +359,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                       <button className={cn(
                         "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
                         filterLabel
-                          ? "bg-primary/10 border-primary/30 text-primary"
+                          ? "bg-primary/10 dark:bg-primary/25 border-primary/30 dark:border-primary/50 text-primary"
                           : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
                       )}>
                         {filterLabel ?? "Label"}
@@ -377,7 +377,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                       <DropdownMenuItem
                         key={l}
                         onClick={() => setFilterLabel(filterLabel === l ? null : l)}
-                        className={cn("gap-2 cursor-pointer", filterLabel === l && "bg-primary/10 text-primary")}
+                        className={cn("gap-2 cursor-pointer", filterLabel === l && "bg-muted text-foreground")}
                       >
                         <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: labelColorFn(l) }} />
                         <span className="truncate">{l}</span>

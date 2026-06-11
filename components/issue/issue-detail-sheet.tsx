@@ -418,11 +418,11 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                 <AvatarGroup>
                                   {issue.assignees.slice(0, 3).map((a) => (
-                                    <Avatar key={a.id} className="size-7 ring-2 ring-background"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback>{a.initials}</AvatarFallback></Avatar>
+                                    <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback>{a.initials}</AvatarFallback></Avatar>
                                   ))}
                                   {issue.assignees.length > 3 && <AvatarGroupCount className="text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>}
                                 </AvatarGroup>
-                                <span className="text-sm truncate">{issue.assignees.length === 1 ? issue.assignees[0].name : `${issue.assignees.length} members`}</span>
+                                <span className="text-sm text-foreground truncate">{issue.assignees.length === 1 ? issue.assignees[0].name : `${issue.assignees.length} members`}</span>
                               </div>
                             ) : (
                               <span className="text-sm text-muted-foreground">Unassigned</span>

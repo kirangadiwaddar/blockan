@@ -42,7 +42,6 @@ const PAGES_NAV: NavItem[] = [
   { title: "Analytics", icon: ChartPie,  href: "/dashboard" },
   { title: "Projects",  icon: FolderRoot, href: "/projects" },
   { title: "Team",      icon: Users,      href: "/team" },
-  { title: "Settings",  icon: Settings,   href: "/settings" },
 ];
 
 function buildWorkspaceNav(slug: string): NavItem[] {

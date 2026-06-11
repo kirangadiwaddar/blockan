@@ -62,7 +62,7 @@ export function KanbanColumn({ colId, label, dot, issues, onAddIssue, onIssueCli
       <div
         ref={setNodeRef}
         className={cn(
-          "flex flex-col gap-3 flex-1 min-h-24 px-2.5 pb-2.5 transition-colors duration-150 rounded-2xl p-3 bg-white",
+          "flex flex-col gap-3 flex-1 min-h-24 px-2.5 pb-2.5 transition-colors duration-150 rounded-2xl p-3 bg-background",
           isOver && "bg-muted/60 dark:bg-muted/30",
         )}
       >

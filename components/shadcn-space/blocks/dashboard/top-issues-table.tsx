@@ -269,12 +269,12 @@ const TopIssuesTable = () => {
                     <Badge
                       className={
                         item.priority === "High"
-                          ? "bg-orange-50 text-orange-500"
+                          ? "bg-orange-50 text-orange-500 dark:bg-orange-950 dark:text-orange-400"
                           : item.priority === "Medium"
-                            ? "bg-yellow-50 text-yellow-600"
+                            ? "bg-yellow-50 text-yellow-600 dark:bg-yellow-950 dark:text-yellow-400"
                             : item.priority === "Low"
-                              ? "bg-green-50 text-green-600"
-                              : "bg-red-50 text-red-600"
+                              ? "bg-green-50 text-green-600 dark:bg-green-950 dark:text-green-400"
+                              : "bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400"
                       }
                     >
                       {item.priority}
@@ -283,7 +283,7 @@ const TopIssuesTable = () => {
 
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center justify-end px-4">
-                      <div className="*:data-[slot=avatar]:ring-background flex -space-x-2 *:data-[slot=avatar]:ring-2">
+                      <div className="*:data-[slot=avatar]:ring-background *:data-[slot=avatar]:dark:ring-muted flex -space-x-2 *:data-[slot=avatar]:ring-2">
                         {item.assignees.map((user) => (
                           <Avatar key={user.name}>
                             <AvatarImage src={user.image} alt={user.name} />

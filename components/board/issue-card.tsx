@@ -175,7 +175,7 @@ export function IssueCard({ issue, overlay, onClick, onDelete }: Props) {
 
             {issue.assignees.length === 1 && (
               <div className="flex items-center gap-1.5 shrink-0">
-                <Avatar className="size-7 ring-2 ring-background">
+                <Avatar className="size-7 ring-2 ring-background dark:ring-muted">
                   <AvatarImage src={issue.assignees[0].avatar} alt={issue.assignees[0].name} />
                   <AvatarFallback className="text-xs">{issue.assignees[0].initials}</AvatarFallback>
                 </Avatar>
@@ -184,7 +184,7 @@ export function IssueCard({ issue, overlay, onClick, onDelete }: Props) {
             {issue.assignees.length > 1 && (
               <AvatarGroup className="shrink-0">
                 {issue.assignees.slice(0, MAX_AVATARS).map((a) => (
-                  <Avatar key={a.id} className="size-7 ring-2 ring-background">
+                  <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted">
                     <AvatarImage src={a.avatar} alt={a.name} />
                     <AvatarFallback className="text-xs">{a.initials}</AvatarFallback>
                   </Avatar>

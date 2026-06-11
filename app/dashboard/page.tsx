@@ -172,7 +172,7 @@ export default function DashboardPage() {
   if (loading && projects.length === 0) {
     return (
       <AppSidebar>
-        <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        <div className="flex flex-col gap-6 p-6 w-full">
           <div className="grid grid-cols-12 gap-4">
             <div className="col-span-12 xl:col-span-6">
               <div className="rounded-2xl border p-6 flex flex-col gap-6 h-40">
@@ -258,8 +258,8 @@ export default function DashboardPage() {
           <div className="max-w-xl w-full flex flex-col items-center gap-8">
             {/* Hero */}
             <div className="flex flex-col items-center gap-3 text-center">
-              <div className="size-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <Sparkles size={26} className="text-primary" />
+              <div className="size-14 rounded-2xl bg-muted flex items-center justify-center">
+                <Sparkles size={26} className="text-foreground" />
               </div>
               <h1 className="text-2xl font-bold">Welcome to Blockan{displayName ? `, ${displayName.split(" ")[0]}` : ""}!</h1>
               <p className="text-sm text-muted-foreground max-w-sm">You're all set up. Follow these steps to get your workspace running.</p>
@@ -380,7 +380,7 @@ export default function DashboardPage() {
               <div className="bg-background inline-flex items-center justify-start rounded-full border p-1">
                 <AvatarGroup>
                   {Array.from(new Map(projects.flatMap((p) => p.members).map((m) => [m.id, m])).values()).slice(0, 5).map((m) => (
-                    <Avatar key={m.id} className="size-7 ring-2 ring-background">
+                    <Avatar key={m.id} className="size-7 ring-2 ring-background dark:ring-muted">
                       <AvatarImage src={m.avatar} alt={m.name} />
                       <AvatarFallback className="text-xs">{m.initials}</AvatarFallback>
                     </Avatar>
@@ -465,7 +465,7 @@ export default function DashboardPage() {
                             <TableCell className="hidden sm:table-cell py-2">
                               <AvatarGroup>
                                 {issue.assignees.slice(0, 3).map((a) => (
-                                  <Avatar key={a.id} className="size-7 ring-2 ring-background">
+                                  <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted">
                                     <AvatarImage src={a.avatar} alt={a.name} />
                                     <AvatarFallback className="text-xs">{a.initials}</AvatarFallback>
                                   </Avatar>
@@ -593,7 +593,7 @@ export default function DashboardPage() {
                         <TableCell className="hidden lg:table-cell py-2">
                           <AvatarGroup>
                             {project.members.slice(0, 3).map((m) => (
-                              <Avatar key={m.id} className="size-7 ring-2 ring-background">
+                              <Avatar key={m.id} className="size-7 ring-2 ring-background dark:ring-muted">
                                 <AvatarImage src={m.avatar} alt={m.name} />
                                 <AvatarFallback className="text-xs">{m.initials}</AvatarFallback>
                               </Avatar>
