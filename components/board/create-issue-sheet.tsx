@@ -121,7 +121,6 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
       setDueDate("");
       setSprintId(defaultSprintId);
       setAssignees([]);
-      setLabels([]);
     }
   }, [open, defaultStatus]);
 
