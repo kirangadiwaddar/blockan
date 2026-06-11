@@ -8,6 +8,7 @@ export type Member = {
   initials: string;
   avatar?: string;
   role: string;
+  email?: string;
 };
 
 export type Issue = {

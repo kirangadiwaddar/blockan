@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition, useEffect, useRef } from "react";
+import { useProjects } from "@/lib/projects-context";
+import { useIssues } from "@/lib/issues-context";
 import AppSidebar from "@/components/shadcn-space/blocks/dashboard/app-sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +18,7 @@ import { enrollTotp, verifyAndActivateTotp, getMfaFactors, unenrollTotp } from "
 import {
   Moon, Sun, Bell, Shield, Palette, User, Trash2, Upload,
   ShieldCheck, ShieldOff, Loader2, CheckCircle2, AlertCircle,
-  Download, Eye, EyeOff, Check, KeyRound,
+  Download, Eye, EyeOff, Check, KeyRound, FolderOpen, ListChecks, Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -71,6 +73,8 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 export default function SettingsPage() {
   const { theme, toggle: toggleTheme, accentId, setAccent } = useTheme();
   const { displayName, email: userEmail, avatarUrl, initials, bio: profileBio, user, refreshProfile } = useUser();
+  const { projects } = useProjects();
+  const { issues } = useIssues();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeSection, setActiveSection] = useState("profile");
@@ -411,14 +415,35 @@ export default function SettingsPage() {
                 <Card className="shadow-none">
                   <CardHeader>
                     <CardTitle className="text-base">Workspace</CardTitle>
-                    <CardDescription>Your current plan and workspace details</CardDescription>
+                    <CardDescription>Overview of your workspace activity</CardDescription>
                   </CardHeader>
-                  <CardContent className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium">Blockan Pro</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Unlimited projects · Up to 50 members · Priority support</p>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="flex flex-col gap-1.5 p-4 rounded-xl border bg-muted/30">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <FolderOpen size={14} />
+                          <span className="text-xs font-medium uppercase tracking-wide">Projects</span>
+                        </div>
+                        <p className="text-2xl font-bold">{projects.length}</p>
+                        <p className="text-xs text-muted-foreground">{projects.length === 1 ? "1 active project" : `${projects.length} active projects`}</p>
+                      </div>
+                      <div className="flex flex-col gap-1.5 p-4 rounded-xl border bg-muted/30">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <ListChecks size={14} />
+                          <span className="text-xs font-medium uppercase tracking-wide">Issues</span>
+                        </div>
+                        <p className="text-2xl font-bold">{issues.length}</p>
+                        <p className="text-xs text-muted-foreground">{issues.filter(i => i.status !== "Completed").length} open · {issues.filter(i => i.status === "Completed").length} done</p>
+                      </div>
+                      <div className="flex flex-col gap-1.5 p-4 rounded-xl border bg-muted/30">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Activity size={14} />
+                          <span className="text-xs font-medium uppercase tracking-wide">In Progress</span>
+                        </div>
+                        <p className="text-2xl font-bold">{issues.filter(i => i.status === "In Progress").length}</p>
+                        <p className="text-xs text-muted-foreground">across all projects</p>
+                      </div>
                     </div>
-                    <Badge className="bg-blue-500/10 text-blue-500 font-normal">Pro</Badge>
                   </CardContent>
                 </Card>
               </>

@@ -222,16 +222,30 @@ function SidebarNav({
       {/* Workspace section */}
       <div className="pt-5">
         <p className="text-xs font-medium capitalize text-muted-foreground mb-2 px-1">Workspace</p>
-        {projects.length > 0 && (
-          <div className="mb-2">
-            <ProjectSwitcher
-              projects={projects}
-              selectedSlug={selectedSlug}
-              onSelect={onSelect}
-            />
+        {projects.length > 0 ? (
+          <>
+            <div className="mb-2">
+              <ProjectSwitcher
+                projects={projects}
+                selectedSlug={selectedSlug}
+                onSelect={onSelect}
+              />
+            </div>
+            <NavMain items={workspaceNav} />
+          </>
+        ) : (
+          <div className="flex flex-col gap-1 opacity-40 pointer-events-none select-none">
+            {buildWorkspaceNav("_").map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-sm text-muted-foreground">
+                  {Icon && <Icon size={15} />}
+                  {item.title}
+                </div>
+              );
+            })}
           </div>
         )}
-        <NavMain items={workspaceNav} />
       </div>
 
     </>

@@ -46,6 +46,7 @@ function profileToMember(p: {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  email?: string | null;
 } | null | undefined, fallbackRole = "member"): Member | null {
   if (!p) return null;
   const name = p.full_name ?? "Unknown";
@@ -56,6 +57,7 @@ function profileToMember(p: {
     initials,
     avatar: p.avatar_url ?? undefined,
     role: fallbackRole,
+    email: p.email ?? undefined,
   };
 }
 
@@ -70,7 +72,7 @@ export async function fetchProjects(): Promise<Project[]> {
       project_members(
         role,
         user_id,
-        profiles!project_members_user_id_fkey(id, full_name, avatar_url)
+        profiles!project_members_user_id_fkey(id, full_name, avatar_url, email)
       ),
       issues(id, status)
     `)
@@ -747,7 +749,7 @@ export async function fetchNotifications(): Promise<AppNotification[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("notifications")
-    .select(`*, actor:profiles!notifications_actor_id_fkey(id, full_name, avatar_url)`)
+    .select(`*, actor:profiles!actor_id(id, full_name, avatar_url)`)
     .order("created_at", { ascending: false })
     .limit(50);
   if (error || !data) return [];

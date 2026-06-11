@@ -83,7 +83,7 @@ export default function TeamPage() {
           initials: m.initials,
           avatar: m.avatar,
           role: m.role,
-          email: `${m.name.split(" ")[0].toLowerCase()}@blockan.io`,
+          email: m.email ?? "",
           teamRole,
           issueCount: issues.filter((i) => i.assignees.some((a) => a.id === m.id)).length,
           projectCount: 1,
