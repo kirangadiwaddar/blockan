@@ -92,7 +92,7 @@ export default function RecentActivities() {
                   className="flex items-start gap-3 px-4 py-2.5 hover:bg-muted/40 transition-colors cursor-pointer"
                 >
                   <div className="relative shrink-0">
-                    <Avatar size="sm">
+                    <Avatar className="size-7">
                       <AvatarImage src={activity.authorAvatar} alt={activity.authorName} />
                       <AvatarFallback
                         className={`text-white text-xs font-medium ${FALLBACK_COLORS[index % FALLBACK_COLORS.length]}`}

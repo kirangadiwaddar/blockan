@@ -36,7 +36,12 @@ import {
 import {
   Bug, BookOpen, CheckSquare, Zap,
   Target, Users, ArrowRight, FolderOpen, Inbox,
+  FolderPlus, UserPlus, SquarePen, Sparkles,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CreateProjectSheet } from "@/components/projects/create-project-sheet";
+import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
+import { useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn, progressColor } from "@/lib/utils";
 import Link from "next/link";
@@ -129,9 +134,11 @@ function DonutChart({ data, total }: { data: { name: string; count: number; fill
 /* ─── Page ────────────────────────────────────────────────── */
 
 export default function DashboardPage() {
-  const { projects, sprints, loading: projectsLoading } = useProjects();
+  const { projects, sprints, loading: projectsLoading, addProject } = useProjects();
   const { issues, loading: issuesLoading } = useIssues();
   const { displayName } = useUser();
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const totalIssues = issues.length;
   const doneIssues = issues.filter((i) => i.status === "Completed").length;
@@ -165,7 +172,7 @@ export default function DashboardPage() {
   if (loading && projects.length === 0) {
     return (
       <AppSidebar>
-        <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        <div className="flex flex-col gap-6 p-6 w-full">
           <div className="grid grid-cols-12 gap-4">
             <div className="col-span-12 xl:col-span-6">
               <div className="rounded-2xl border p-6 flex flex-col gap-6 h-40">
@@ -207,6 +214,71 @@ export default function DashboardPage() {
                   <div className="flex-1 flex flex-col gap-1.5">
                     <Skeleton className="h-2.5 w-3/4" />
                     <Skeleton className="h-2 w-1/3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </AppSidebar>
+    );
+  }
+
+  /* ── Onboarding — shown for brand new users with no projects ── */
+  if (!loading && projects.length === 0) {
+    const steps = [
+      {
+        icon: FolderPlus,
+        color: "bg-blue-500/10 text-blue-500",
+        title: "Create your first project",
+        desc: "Set up a project to start tracking issues, sprints, and progress.",
+        action: <Button size="sm" className="cursor-pointer mt-2" onClick={() => setCreateProjectOpen(true)}>Create project</Button>,
+      },
+      {
+        icon: UserPlus,
+        color: "bg-violet-500/10 text-violet-500",
+        title: "Invite your team",
+        desc: "Bring in teammates so you can assign issues and collaborate.",
+        action: <Button size="sm" variant="outline" className="cursor-pointer mt-2" onClick={() => setInviteOpen(true)}>Invite member</Button>,
+      },
+      {
+        icon: SquarePen,
+        color: "bg-green-500/10 text-green-500",
+        title: "Create your first issue",
+        desc: "Break down work into issues, assign them, and track progress on the board.",
+        action: <Link href="/projects" className={cn(buttonVariants({ size: "sm", variant: "outline" }), "mt-2 cursor-pointer")}>Go to projects</Link>,
+      },
+    ];
+
+    return (
+      <AppSidebar>
+        <CreateProjectSheet open={createProjectOpen} onOpenChange={setCreateProjectOpen} onCreated={(p) => addProject(p)} />
+        <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} />
+        <div className="flex flex-col items-center justify-center min-h-[80vh] p-6">
+          <div className="max-w-xl w-full flex flex-col items-center gap-8">
+            {/* Hero */}
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="size-14 rounded-2xl bg-muted flex items-center justify-center">
+                <Sparkles size={26} className="text-foreground" />
+              </div>
+              <h1 className="text-2xl font-bold">Welcome to Blockan{displayName ? `, ${displayName.split(" ")[0]}` : ""}!</h1>
+              <p className="text-sm text-muted-foreground max-w-sm">You're all set up. Follow these steps to get your workspace running.</p>
+            </div>
+
+            {/* Steps */}
+            <div className="w-full flex flex-col gap-3">
+              {steps.map((step, i) => (
+                <div key={i} className="rounded-xl border bg-card px-5 py-4 flex items-start gap-4">
+                  <div className={cn("size-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5", step.color)}>
+                    <step.icon size={17} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-muted-foreground">Step {i + 1}</span>
+                    </div>
+                    <p className="text-sm font-semibold mt-0.5">{step.title}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{step.desc}</p>
+                    {step.action}
                   </div>
                 </div>
               ))}
@@ -308,9 +380,9 @@ export default function DashboardPage() {
               <div className="bg-background inline-flex items-center justify-start rounded-full border p-1">
                 <AvatarGroup>
                   {Array.from(new Map(projects.flatMap((p) => p.members).map((m) => [m.id, m])).values()).slice(0, 5).map((m) => (
-                    <Avatar key={m.id} size="sm">
+                    <Avatar key={m.id} className="size-7 ring-2 ring-background dark:ring-muted">
                       <AvatarImage src={m.avatar} alt={m.name} />
-                      <AvatarFallback>{m.initials}</AvatarFallback>
+                      <AvatarFallback className="text-xs">{m.initials}</AvatarFallback>
                     </Avatar>
                   ))}
                 </AvatarGroup>
@@ -393,13 +465,13 @@ export default function DashboardPage() {
                             <TableCell className="hidden sm:table-cell py-2">
                               <AvatarGroup>
                                 {issue.assignees.slice(0, 3).map((a) => (
-                                  <Avatar key={a.id} className="size-6 ring-1 ring-background">
+                                  <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted">
                                     <AvatarImage src={a.avatar} alt={a.name} />
-                                    <AvatarFallback className="text-[9px]">{a.initials}</AvatarFallback>
+                                    <AvatarFallback className="text-xs">{a.initials}</AvatarFallback>
                                   </Avatar>
                                 ))}
                                 {issue.assignees.length > 3 && (
-                                  <AvatarGroupCount className="size-6 text-[9px]">+{issue.assignees.length - 3}</AvatarGroupCount>
+                                  <AvatarGroupCount className="size-7 text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>
                                 )}
                               </AvatarGroup>
                             </TableCell>
@@ -521,13 +593,13 @@ export default function DashboardPage() {
                         <TableCell className="hidden lg:table-cell py-2">
                           <AvatarGroup>
                             {project.members.slice(0, 3).map((m) => (
-                              <Avatar key={m.id} size="sm">
+                              <Avatar key={m.id} className="size-7 ring-2 ring-background dark:ring-muted">
                                 <AvatarImage src={m.avatar} alt={m.name} />
-                                <AvatarFallback>{m.initials}</AvatarFallback>
+                                <AvatarFallback className="text-xs">{m.initials}</AvatarFallback>
                               </Avatar>
                             ))}
                             {project.members.length > 3 && (
-                              <AvatarGroupCount>+{project.members.length - 3}</AvatarGroupCount>
+                              <AvatarGroupCount className="size-7 text-xs">+{project.members.length - 3}</AvatarGroupCount>
                             )}
                           </AvatarGroup>
                         </TableCell>

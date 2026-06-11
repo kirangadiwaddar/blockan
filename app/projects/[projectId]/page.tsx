@@ -73,7 +73,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   if (!project && (projectsLoading || issuesLoading)) {
     return (
       <AppSidebar>
-        <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto w-full">
+        <div className="flex flex-col gap-6 p-6 w-full">
           <div className="flex items-center gap-3">
             <Skeleton className="size-9 rounded-lg" />
             <div className="flex flex-col gap-1.5">
@@ -132,7 +132,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
 
   return (
     <AppSidebar>
-      <div className="flex flex-col gap-4 p-5 max-w-6xl mx-auto w-full">
+      <div className="flex flex-col gap-4 p-5 w-full">
 
         {/* ── Header ── */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -151,7 +151,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
           <div className="flex items-center gap-2 shrink-0">
             <AvatarGroup>
               {project.members.slice(0, 5).map((m) => (
-                <Avatar key={m.id} className="size-7 ring-1 ring-background">
+                <Avatar key={m.id} className="size-7 ring-1 ring-background dark:ring-muted">
                   <AvatarImage src={m.avatar} alt={m.name} />
                   <AvatarFallback className="text-xs">{m.initials}</AvatarFallback>
                 </Avatar>
@@ -343,7 +343,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
                       <TableCell className="py-2">
                         <AvatarGroup>
                           {issue.assignees.slice(0, 3).map((a) => (
-                            <Avatar key={a.id} className="size-5 ring-1 ring-background">
+                            <Avatar key={a.id} className="size-5 ring-1 ring-background dark:ring-muted">
                               <AvatarImage src={a.avatar} alt={a.name} />
                               <AvatarFallback className="text-[8px]">{a.initials}</AvatarFallback>
                             </Avatar>

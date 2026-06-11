@@ -33,8 +33,13 @@ export function CommandPalette() {
       }
       if (e.key === "Escape") setOpen(false);
     };
+    const openFromShortcut = () => setOpen(true);
     document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
+    window.addEventListener("blockan:open-palette", openFromShortcut);
+    return () => {
+      document.removeEventListener("keydown", down);
+      window.removeEventListener("blockan:open-palette", openFromShortcut);
+    };
   }, []);
 
   const navigate = useCallback((href: string) => {
@@ -136,7 +141,7 @@ export function CommandPalette() {
                     <Command.Item
                       key={issue.id}
                       value={`issue-${issue.id}`}
-                      onSelect={() => navigate(`/projects/${issue.projectId}/board`)}
+                      onSelect={() => navigate(`/projects/${issue.projectId}/board?issue=${issue.id}`)}
                       className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm cursor-pointer hover:bg-accent data-[selected=true]:bg-accent transition-colors"
                     >
                       <TypeIcon size={14} className={cn("shrink-0", typeColor[issue.type])} />

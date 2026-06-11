@@ -50,11 +50,11 @@ export function MemberPicker({
     <div className={cn("flex flex-col", className)}>
       {/* Selected chips — shown when ≥1 member is selected */}
       {selected.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap px-3 pt-2.5 pb-1.5 border-b">
+        <div className="flex items-center gap-1.5 flex-wrap px-3 pt-2.5 pb-2 bg-muted/40 border-b">
           {selected.map((m) => (
             <span
               key={m.id}
-              className="inline-flex items-center gap-1.5 bg-primary/10 text-primary rounded-full pl-1 pr-2 py-0.5 text-xs font-medium"
+              className="inline-flex items-center gap-1.5 bg-background border border-border rounded-full pl-0.5 pr-2 py-0.5 text-xs font-medium text-foreground shadow-xs"
             >
               <Avatar className="size-4 shrink-0">
                 <AvatarImage src={m.avatar} alt={m.name} />
@@ -63,7 +63,7 @@ export function MemberPicker({
               {m.name.split(" ")[0]}
               <button
                 onClick={(e) => { e.stopPropagation(); onChange(selected.filter((s) => s.id !== m.id)); }}
-                className="text-primary/60 hover:text-primary transition-colors cursor-pointer"
+                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 <X size={10} />
               </button>
@@ -108,7 +108,7 @@ export function MemberPicker({
             {query.trim() ? (
               <button
                 onClick={() => { window.location.href = `/team?invite=${encodeURIComponent(query.trim())}`; }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/15 transition-colors cursor-pointer mt-1"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors cursor-pointer mt-1"
               >
                 <Mail size={12} /> Send invite to "{query.trim()}"
               </button>
@@ -139,7 +139,7 @@ export function MemberPicker({
               onClick={() => toggle(m)}
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2 hover:bg-muted text-left transition-colors cursor-pointer",
-                active && "bg-primary/5"
+                active && "bg-muted"
               )}
             >
               <div className="relative shrink-0">

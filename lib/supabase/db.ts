@@ -46,6 +46,7 @@ function profileToMember(p: {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  email?: string | null;
 } | null | undefined, fallbackRole = "member"): Member | null {
   if (!p) return null;
   const name = p.full_name ?? "Unknown";
@@ -56,6 +57,7 @@ function profileToMember(p: {
     initials,
     avatar: p.avatar_url ?? undefined,
     role: fallbackRole,
+    email: p.email ?? undefined,
   };
 }
 
@@ -70,7 +72,7 @@ export async function fetchProjects(): Promise<Project[]> {
       project_members(
         role,
         user_id,
-        profiles!project_members_user_id_fkey(id, full_name, avatar_url)
+        profiles!project_members_user_id_fkey(id, full_name, avatar_url, email)
       ),
       issues(id, status)
     `)
@@ -276,6 +278,7 @@ export async function fetchIssues(
       sprintId: row.sprint_id ?? undefined,
       storyPoints: row.points || undefined,
       dueDate: row.due_date ?? undefined,
+      labels: (row.labels as string[]) ?? [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     } satisfies Issue;
@@ -295,6 +298,7 @@ export async function createIssue(data: {
   points?: number;
   dueDate?: string;
   code?: string;
+  labels?: string[];
 }): Promise<Issue | null> {
   const supabase = createClient();
   const { data: row, error } = await supabase
@@ -312,6 +316,7 @@ export async function createIssue(data: {
       points: data.points ?? 0,
       due_date: data.dueDate ?? null,
       code: data.code ?? null,
+      labels: data.labels ?? [],
     })
     .select(`
       *,
@@ -341,6 +346,7 @@ export async function createIssue(data: {
     sprintId: row.sprint_id ?? undefined,
     storyPoints: row.points || undefined,
     dueDate: row.due_date ?? undefined,
+    labels: (row.labels as string[]) ?? [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -359,6 +365,7 @@ export async function updateIssue(
     assigneeIds: string[];
     points: number;
     dueDate: string | null;
+    labels: string[];
   }>
 ): Promise<boolean> {
   const supabase = createClient();
@@ -372,6 +379,7 @@ export async function updateIssue(
   if (patch.assigneeId !== undefined)  dbPatch.assignee_id = patch.assigneeId;
   if (patch.points !== undefined)      dbPatch.points = patch.points;
   if (patch.dueDate !== undefined)     dbPatch.due_date = patch.dueDate;
+  if (patch.labels !== undefined)      dbPatch.labels = patch.labels;
 
   const { error } = await supabase.from("issues").update(dbPatch).eq("id", id);
   if (error) return false;
@@ -639,6 +647,65 @@ export async function fetchRecentActivities(limit = 15): Promise<Activity[]> {
     .slice(0, limit);
 }
 
+/* ─── Issue activity ─────────────────────────────────────── */
+
+export type IssueActivity = {
+  id: string;
+  issueId: string;
+  actorId: string | null;
+  actorName: string;
+  actorInitials: string;
+  actorAvatar?: string;
+  eventType: "created" | "status_changed" | "priority_changed" | "assignee_changed" | "title_changed" | "sprint_changed";
+  fromValue: string | null;
+  toValue: string | null;
+  createdAt: string;
+};
+
+export async function fetchIssueActivities(issueId: string): Promise<IssueActivity[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("issue_activity")
+    .select(`*, actor:profiles!issue_activity_actor_id_fkey(id, full_name, avatar_url)`)
+    .eq("issue_id", issueId)
+    .order("created_at", { ascending: true });
+
+  if (error || !data) return [];
+
+  return data.map((row: any) => {
+    const name = row.actor?.full_name ?? "Someone";
+    return {
+      id: row.id,
+      issueId: row.issue_id,
+      actorId: row.actor_id,
+      actorName: name,
+      actorInitials: name.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase(),
+      actorAvatar: row.actor?.avatar_url ?? undefined,
+      eventType: row.event_type,
+      fromValue: row.from_value,
+      toValue: row.to_value,
+      createdAt: row.created_at,
+    };
+  });
+}
+
+export async function logIssueActivity(data: {
+  issueId: string;
+  actorId: string;
+  eventType: IssueActivity["eventType"];
+  fromValue?: string | null;
+  toValue?: string | null;
+}): Promise<void> {
+  const supabase = createClient();
+  await supabase.from("issue_activity").insert({
+    issue_id: data.issueId,
+    actor_id: data.actorId,
+    event_type: data.eventType,
+    from_value: data.fromValue ?? null,
+    to_value: data.toValue ?? null,
+  });
+}
+
 export async function createComment(data: {
   issueId: string;
   authorId: string;
@@ -660,4 +727,131 @@ export async function createComment(data: {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+/* ─── Notifications ──────────────────────────────────────── */
+
+export type AppNotification = {
+  id: string;
+  userId: string;
+  type: "comment" | "assigned" | "mentioned";
+  title: string;
+  body?: string;
+  issueId?: string;
+  actorId?: string;
+  actorName?: string;
+  actorAvatar?: string;
+  read: boolean;
+  createdAt: string;
+};
+
+export async function fetchNotifications(): Promise<AppNotification[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("notifications")
+    .select(`*, actor:profiles!actor_id(id, full_name, avatar_url)`)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error || !data) return [];
+  return data.map((row: any) => ({
+    id: row.id,
+    userId: row.user_id,
+    type: row.type,
+    title: row.title,
+    body: row.body ?? undefined,
+    issueId: row.issue_id ?? undefined,
+    actorId: row.actor_id ?? undefined,
+    actorName: row.actor?.full_name ?? undefined,
+    actorAvatar: row.actor?.avatar_url ?? undefined,
+    read: row.read,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  const supabase = createClient();
+  await supabase.from("notifications").update({ read: true }).eq("id", id);
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from("notifications").update({ read: true }).eq("user_id", user.id);
+}
+
+export async function createNotification(data: {
+  userId: string;
+  type: AppNotification["type"];
+  title: string;
+  body?: string;
+  issueId?: string;
+  actorId?: string;
+}): Promise<void> {
+  const supabase = createClient();
+  await supabase.from("notifications").insert({
+    user_id: data.userId,
+    type: data.type,
+    title: data.title,
+    body: data.body ?? null,
+    issue_id: data.issueId ?? null,
+    actor_id: data.actorId ?? null,
+  });
+}
+
+/* ─── Labels ─────────────────────────────────────────────── */
+
+export type ProjectLabel = {
+  id: string;
+  projectId: string;
+  name: string;
+  color: string;
+};
+
+export async function fetchProjectLabels(projectId: string): Promise<ProjectLabel[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("project_labels")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("name");
+  if (error || !data) return [];
+  return data.map((row: any) => ({
+    id: row.id,
+    projectId: row.project_id,
+    name: row.name,
+    color: row.color,
+  }));
+}
+
+export async function upsertProjectLabel(data: {
+  projectId: string;
+  name: string;
+  color: string;
+  id?: string;
+}): Promise<ProjectLabel | null> {
+  const supabase = createClient();
+  const payload: Record<string, string> = {
+    project_id: data.projectId,
+    name: data.name,
+    color: data.color,
+  };
+  if (data.id) payload.id = data.id;
+  const { data: row, error } = await supabase
+    .from("project_labels")
+    .upsert(payload, { onConflict: "project_id,name" })
+    .select()
+    .single();
+  if (error || !row) return null;
+  return { id: row.id, projectId: row.project_id, name: row.name, color: row.color };
+}
+
+export async function deleteProjectLabel(id: string): Promise<void> {
+  const supabase = createClient();
+  await supabase.from("project_labels").delete().eq("id", id);
+}
+
+export async function updateIssueLabels(issueId: string, labels: string[]): Promise<void> {
+  const supabase = createClient();
+  await supabase.from("issues").update({ labels }).eq("id", issueId);
 }

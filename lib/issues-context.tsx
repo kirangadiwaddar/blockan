@@ -15,6 +15,8 @@ import {
   fetchIssues,
   updateIssue as dbUpdateIssue,
   deleteIssue as dbDeleteIssue,
+  logIssueActivity,
+  createNotification,
 } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 
@@ -161,7 +163,43 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateIssue = useCallback((updated: Issue) => {
-    setIssues((prev) => prev.map((i) => i.id === updated.id ? updated : i));
+    setIssues((prev) => {
+      const prev_ = prev.find((i) => i.id === updated.id);
+      if (prev_) {
+        // Log activity for meaningful field changes
+        createClient().auth.getUser().then(({ data }) => {
+          const actorId = data.user?.id;
+          if (!actorId) return;
+          if (prev_.status !== updated.status) {
+            logIssueActivity({ issueId: updated.id, actorId, eventType: "status_changed", fromValue: prev_.status, toValue: updated.status }).catch(() => {});
+          }
+          if (prev_.priority !== updated.priority) {
+            logIssueActivity({ issueId: updated.id, actorId, eventType: "priority_changed", fromValue: prev_.priority, toValue: updated.priority }).catch(() => {});
+          }
+          const prevAssigneeIds = prev_.assignees.map((a) => a.id).sort().join(",");
+          const newAssigneeIds = updated.assignees.map((a) => a.id).sort().join(",");
+          if (prevAssigneeIds !== newAssigneeIds) {
+            const fromNames = prev_.assignees.map((a) => a.name).join(", ") || "Unassigned";
+            const toNames = updated.assignees.map((a) => a.name).join(", ") || "Unassigned";
+            logIssueActivity({ issueId: updated.id, actorId, eventType: "assignee_changed", fromValue: fromNames, toValue: toNames }).catch(() => {});
+            // Notify newly added assignees
+            const prevIds = new Set(prev_.assignees.map((a) => a.id));
+            updated.assignees.forEach((a) => {
+              if (!prevIds.has(a.id) && a.id !== actorId) {
+                createNotification({
+                  userId: a.id,
+                  type: "assigned",
+                  title: `You were assigned to ${updated.code ?? updated.title}`,
+                  issueId: updated.id,
+                  actorId,
+                }).catch(() => {});
+              }
+            });
+          }
+        });
+      }
+      return prev.map((i) => i.id === updated.id ? updated : i);
+    });
     // Mark as locally updated so the realtime echo doesn't clobber our state
     locallyUpdatedRef.current.add(updated.id);
     dbUpdateIssue(updated.id, {
@@ -175,6 +213,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       assigneeIds: updated.assignees.map((a) => a.id),
       points: updated.storyPoints,
       dueDate: updated.dueDate ?? null,
+      labels: updated.labels ?? [],
     }).catch(console.error);
   }, []);
 

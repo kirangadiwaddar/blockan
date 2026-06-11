@@ -116,7 +116,7 @@ const LoginForm = () => {
                 <Field orientation="horizontal" className="justify-between">
                   <div className="flex items-center gap-3">
                     <Checkbox id="remember" defaultChecked className="cursor-pointer" />
-                    <FieldLabel htmlFor="remember" className="text-sm text-primary font-normal cursor-pointer">Remember this device</FieldLabel>
+                    <FieldLabel htmlFor="remember" className="text-sm text-primary font-normal cursor-pointer dark:text-white/30">Remember this device</FieldLabel>
                   </div>
                   <a href="/forgot-password" className="text-sm text-card-foreground font-medium text-end">Forgot password?</a>
                 </Field>

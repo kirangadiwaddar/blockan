@@ -475,7 +475,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
                   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
                   return (
                     <div key={member.id} className="flex items-start gap-3 p-3.5 rounded-xl border bg-card">
-                      <Avatar size="sm">
+                      <Avatar className="size-7">
                         <AvatarImage src={member.avatar} alt={member.name} />
                         <AvatarFallback>{member.initials}</AvatarFallback>
                       </Avatar>

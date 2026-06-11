@@ -16,6 +16,10 @@ on conflict do nothing;
 -- RLS
 alter table public.issue_assignees enable row level security;
 
+drop policy if exists "issue_assignees: project members can read"   on public.issue_assignees;
+drop policy if exists "issue_assignees: project members can insert"  on public.issue_assignees;
+drop policy if exists "issue_assignees: project members can delete"  on public.issue_assignees;
+
 create policy "issue_assignees: project members can read"
   on public.issue_assignees for select
   using (

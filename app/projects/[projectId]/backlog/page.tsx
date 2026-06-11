@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useIssues } from "@/lib/issues-context";
 import { useProjects } from "@/lib/projects-context";
 import { Issue, IssuePriority, IssueType } from "@/lib/types";
@@ -56,6 +57,13 @@ import { cn } from "@/lib/utils";
 import { CreateIssueSheet } from "@/components/board/create-issue-sheet";
 
 /* ─── Config ──────────────────────────────────────────────── */
+
+const LABEL_PALETTE = ["#6366f1","#3b82f6","#22c55e","#f59e0b","#ef4444","#a855f7","#ec4899","#14b8a6","#f97316","#64748b"];
+function labelColor(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return LABEL_PALETTE[h % LABEL_PALETTE.length];
+}
 
 const priorityVariant: Record<IssuePriority, { variant?: "destructive" | "secondary" | "outline"; className?: string }> = {
   Critical: { variant: "destructive" },
@@ -225,7 +233,18 @@ function SprintGroup({
                         <span className="text-xs font-mono text-muted-foreground">{issue.code}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm font-medium">{issue.title}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium">{issue.title}</span>
+                          {(issue.labels ?? []).map((l) => (
+                            <span
+                              key={l}
+                              className="inline-flex items-center text-[10px] font-medium rounded-full px-1.5 py-0.5 text-white shrink-0"
+                              style={{ backgroundColor: labelColor(l) }}
+                            >
+                              {l}
+                            </span>
+                          ))}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
@@ -258,13 +277,13 @@ function SprintGroup({
                       <TableCell>
                         <AvatarGroup>
                           {issue.assignees.slice(0, 3).map((a) => (
-                            <Avatar key={a.id} size="sm">
+                            <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted">
                               <AvatarImage src={a.avatar} alt={a.name} />
-                              <AvatarFallback>{a.initials}</AvatarFallback>
+                              <AvatarFallback className="text-xs">{a.initials}</AvatarFallback>
                             </Avatar>
                           ))}
                           {issue.assignees.length > 3 && (
-                            <AvatarGroupCount className="text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>
+                            <AvatarGroupCount className="size-7 text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>
                           )}
                         </AvatarGroup>
                       </TableCell>
@@ -300,7 +319,7 @@ function SprintGroup({
 
 /* ─── Page ────────────────────────────────────────────────── */
 
-export default function BacklogPage({ params }: { params: Promise<{ projectId: string }> }) {
+function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
   const { projects, sprintsForProject, projectBySlug, uuidForSlug, loading: projectsLoading } = useProjects();
   const project        = projectBySlug(projectId) ?? projects[0];
@@ -310,11 +329,29 @@ export default function BacklogPage({ params }: { params: Promise<{ projectId: s
     () => allCtxIssues.filter((i) => i.projectId === project?.id),
     [allCtxIssues, project?.id],
   );
+  const searchParams   = useSearchParams();
+  const issueIdParam   = searchParams?.get("issue") ?? null;
+
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailIssue, setDetailIssue] = useState<Issue | null>(null);
   const [detailOpen, setDetailOpen]   = useState(false);
+
+  useEffect(() => {
+    if (!issueIdParam || issueList.length === 0) return;
+    const found = issueList.find((i) => i.id === issueIdParam);
+    if (found) {
+      setDetailIssue(found);
+      setDetailOpen(true);
+    }
+  }, [issueIdParam, issueList]);
   const [deleteTarget, setDeleteTarget] = useState<Issue | null>(null);
   const [createOpen, setCreateOpen]   = useState(false);
+
+  useEffect(() => {
+    const openCreate = () => setCreateOpen(true);
+    window.addEventListener("blockan:create-issue", openCreate);
+    return () => window.removeEventListener("blockan:create-issue", openCreate);
+  }, []);
 
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -326,7 +363,7 @@ export default function BacklogPage({ params }: { params: Promise<{ projectId: s
   if (!project && (projectsLoading || issuesLoading)) {
     return (
       <AppSidebar>
-        <div className="flex flex-col gap-5 p-6 max-w-6xl mx-auto w-full">
+        <div className="flex flex-col gap-5 p-6 w-full">
           <div className="flex items-center gap-3">
             <Skeleton className="size-7 rounded-lg" />
             <Skeleton className="h-6 w-48" />
@@ -469,5 +506,13 @@ export default function BacklogPage({ params }: { params: Promise<{ projectId: s
         onCancel={() => setDeleteTarget(null)}
       />
     </AppSidebar>
+  );
+}
+
+export default function BacklogPage({ params }: { params: Promise<{ projectId: string }> }) {
+  return (
+    <React.Suspense>
+      <BacklogPageInner params={params} />
+    </React.Suspense>
   );
 }

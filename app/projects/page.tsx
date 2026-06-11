@@ -31,7 +31,7 @@ export default function ProjectsPage() {
 
   return (
     <AppSidebar>
-      <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col gap-6 p-6 w-full">
         {/* Header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
@@ -56,7 +56,7 @@ export default function ProjectsPage() {
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
           {loading
             ? Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="rounded-2xl border bg-card p-5 flex flex-col gap-4">

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { type Issue } from "@/lib/types";
 import * as XLSX from "xlsx";
 import { createGoogleSpreadsheet } from "@/lib/google-sheets";
@@ -58,8 +59,9 @@ function downloadXlsx(issues: Issue[], filename: string, colKeys: string[]) {
   XLSX.writeFile(wb, filename);
 }
 
-export default function BoardPage({ params }: { params: Promise<{ projectId: string }> }) {
-  const { projectId } = React.use(params);
+function BoardPageContent({ projectId }: { projectId: string }) {
+  const searchParams = useSearchParams();
+  const defaultOpenIssueId = searchParams.get("issue") ?? undefined;
   const { projects, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allIssues, loading: issuesLoading } = useIssues();
 
@@ -220,6 +222,7 @@ export default function BoardPage({ params }: { params: Promise<{ projectId: str
           members={project?.members ?? []}
           projectId={project?.id}
           activeSprintId={sprint?.id}
+          defaultOpenIssueId={defaultOpenIssueId}
           toolbarSlot={sprint ? (
             <div className="flex items-center gap-3 px-2 pr-4 py-2 rounded-full bg-muted/40 border min-w-0">
               <Badge className="bg-blue-500/10 text-blue-500 font-normal text-xs shrink-0">
@@ -243,5 +246,14 @@ export default function BoardPage({ params }: { params: Promise<{ projectId: str
         />
       </div>
     </AppSidebar>
+  );
+}
+
+export default function BoardPage({ params }: { params: Promise<{ projectId: string }> }) {
+  const { projectId } = React.use(params);
+  return (
+    <React.Suspense>
+      <BoardPageContent projectId={projectId} />
+    </React.Suspense>
   );
 }
