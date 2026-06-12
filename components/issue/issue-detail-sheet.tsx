@@ -25,7 +25,7 @@ import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronDown, CalendarDays, User, Tag, Layers, Play,
   MessageSquare, Clock, X, Pencil, Check, Trash2,
-  Copy, ArrowRight, UserCheck, Flag, GitBranch,
+  Copy, ArrowRight, UserCheck, Flag, GitBranch, Link2,
 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { EmptyState } from "@/components/ui/empty-state";
