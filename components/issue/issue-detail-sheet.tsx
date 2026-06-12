@@ -442,7 +442,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                           <>
                             <AvatarGroup>
                               {issue.assignees.slice(0, 3).map((a) => (
-                                <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback>{a.initials}</AvatarFallback></Avatar>
+                                <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback colorSeed={a.name}>{a.initials}</AvatarFallback></Avatar>
                               ))}
                               {issue.assignees.length > 3 && <AvatarGroupCount className="text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>}
                             </AvatarGroup>
@@ -461,7 +461,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                   <AvatarGroup>
                                     {issue.assignees.slice(0, 3).map((a) => (
-                                      <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback>{a.initials}</AvatarFallback></Avatar>
+                                      <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback colorSeed={a.name}>{a.initials}</AvatarFallback></Avatar>
                                     ))}
                                     {issue.assignees.length > 3 && <AvatarGroupCount className="text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>}
                                   </AvatarGroup>
@@ -495,7 +495,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                   {/* Reporter */}
                   <DetailRow icon={User} label="Reporter">
                     <div className="flex items-center gap-2 px-1.5 py-1">
-                      <Avatar className="size-7"><AvatarImage src={issue.reporter.avatar} alt={issue.reporter.name} /><AvatarFallback>{issue.reporter.initials}</AvatarFallback></Avatar>
+                      <Avatar className="size-7"><AvatarImage src={issue.reporter.avatar} alt={issue.reporter.name} /><AvatarFallback colorSeed={issue.reporter.name}>{issue.reporter.initials}</AvatarFallback></Avatar>
                       <span className="text-sm font-medium">{issue.reporter.name}</span>
                     </div>
                   </DetailRow>
