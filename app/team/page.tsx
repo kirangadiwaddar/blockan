@@ -2,6 +2,7 @@
 
 import AppSidebar from "@/components/shadcn-space/blocks/dashboard/app-sidebar";
 import { useProjects } from "@/lib/projects-context";
+import { useUser } from "@/lib/supabase/user-context";
 import { useIssues } from "@/lib/issues-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +64,22 @@ export default function TeamPage() {
   const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
   const { projects, removeMember, updateMemberRole } = useProjects();
   const { issues } = useIssues();
+  const { user } = useUser();
+
+  // Current user's highest role across all projects
+  const currentUserRole: Role = useMemo(() => {
+    if (!user) return "Member";
+    for (const project of projects) {
+      const m = project.members.find((m) => m.id === user.id);
+      if (!m) continue;
+      const r = (m.role ?? "member").toLowerCase();
+      if (r === "owner") return "Owner";
+      if (r === "admin") return "Admin";
+    }
+    return "Member";
+  }, [projects, user]);
+
+  const canManageRoles = currentUserRole === "Owner" || currentUserRole === "Admin";
 
   const teamData: TeamMember[] = useMemo(() => {
     const seen = new Map<string, TeamMember>();
@@ -242,38 +259,42 @@ export default function TeamPage() {
                             <Eye size={12} /> View profile
                           </DropdownMenuItem>
 
-                          <DropdownMenuSeparator />
+                          {canManageRoles && member.id !== user?.id && (
+                            <>
+                              <DropdownMenuSeparator />
 
-                          {/* Change role — one item per role */}
-                          <div className="px-2 py-1 text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                            Change role
-                          </div>
-                          {ROLES.map((role) => {
-                            const Icon = roleIcon[role];
-                            const active = member.teamRole === role;
-                            return (
+                              {/* Change role — owner/admin only */}
+                              <div className="px-2 py-1 text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                                Change role
+                              </div>
+                              {ROLES.filter((r) => r !== "Owner").map((role) => {
+                                const Icon = roleIcon[role];
+                                const active = member.teamRole === role;
+                                return (
+                                  <DropdownMenuItem
+                                    key={role}
+                                    className={`cursor-pointer gap-2 text-xs ${active ? "font-semibold" : ""}`}
+                                    onClick={() => handleChangeRole(member, role)}
+                                  >
+                                    <Icon size={11} className={active ? "text-primary" : ""} />
+                                    {role}
+                                    {active && <span className="ml-auto text-xs text-primary">current</span>}
+                                  </DropdownMenuItem>
+                                );
+                              })}
+
+                              <DropdownMenuSeparator />
+
+                              {/* Remove — owner/admin only, can't remove yourself */}
                               <DropdownMenuItem
-                                key={role}
-                                className={`cursor-pointer gap-2 text-xs ${active ? "font-semibold" : ""}`}
-                                onClick={() => handleChangeRole(member, role)}
+                                variant="destructive"
+                                className="cursor-pointer gap-2 text-xs"
+                                onClick={() => setRemoveTarget(member)}
                               >
-                                <Icon size={11} className={active ? "text-primary" : ""} />
-                                {role}
-                                {active && <span className="ml-auto text-xs text-primary">current</span>}
+                                <Trash2 size={12} /> Remove from team
                               </DropdownMenuItem>
-                            );
-                          })}
-
-                          <DropdownMenuSeparator />
-
-                          {/* Remove */}
-                          <DropdownMenuItem
-                            variant="destructive"
-                            className="cursor-pointer gap-2 text-xs"
-                            onClick={() => setRemoveTarget(member)}
-                          >
-                            <Trash2 size={12} /> Remove from team
-                          </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
