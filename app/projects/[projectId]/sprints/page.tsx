@@ -164,8 +164,8 @@ function SprintCard({
                     </DropdownMenuItem>
                   )}
                   {sprint.status === "completed" && (
-                    <DropdownMenuItem className="cursor-pointer text-muted-foreground" disabled>
-                      <Archive size={13} /> Archived
+                    <DropdownMenuItem className="text-muted-foreground opacity-60" disabled>
+                      <Archive size={13} /> Sprint completed
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>

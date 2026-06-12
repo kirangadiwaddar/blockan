@@ -25,6 +25,7 @@ import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronDown, CalendarDays, User, Tag, Layers, Play,
   MessageSquare, Clock, X, Pencil, Check, Trash2,
+  Copy, ArrowRight, UserCheck, Flag, GitBranch,
 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -32,7 +33,6 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Lightbox } from "@/components/ui/lightbox";
 import { cn } from "@/lib/utils";
 import { fetchIssueActivities, updateIssueLabels, type IssueActivity } from "@/lib/supabase/db";
-import { Link2, ArrowRight, UserCheck, Flag, GitBranch } from "lucide-react";
 
 /* ─── Config ─────────────────────────────────────────────── */
 
@@ -109,7 +109,6 @@ function ShareIssueButton({ projectId, issueId }: { projectId: string; issueId: 
   const href = `/projects/${projectId}/issues/${issueId}`;
   return (
     <button
-      title="Copy shareable link"
       onClick={() => {
         const url = `${window.location.origin}${href}`;
         navigator.clipboard.writeText(url).then(() => {
@@ -118,14 +117,14 @@ function ShareIssueButton({ projectId, issueId }: { projectId: string; issueId: 
         });
       }}
       className={cn(
-        "p-1 rounded-md transition-colors cursor-pointer text-xs flex items-center gap-1",
+        "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium transition-colors cursor-pointer",
         copied
-          ? "text-green-600 dark:text-green-400"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          ? "border-green-500/40 bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400"
+          : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
       )}
     >
-      <Link2 size={13} />
-      {copied && <span className="text-[10px] font-medium">Copied!</span>}
+      {copied ? <Check size={12} /> : <Copy size={12} />}
+      {copied ? "Copied!" : "Share URL"}
     </button>
   );
 }
@@ -236,7 +235,7 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        className="flex flex-col gap-0 p-0 overflow-hidden [&[data-side=right]]:w-[50vw] [&[data-side=right]]:max-w-none"
+        className="flex flex-col gap-0 p-0 overflow-hidden [&[data-side=right]]:w-full [&[data-side=right]]:sm:w-[50vw] [&[data-side=right]]:max-w-none"
         showCloseButton={false}
       >
 
@@ -247,7 +246,10 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
             <TypeIcon size={13} className={typeInfo.color} />
             <span className="text-xs font-mono text-muted-foreground">{issue.code}</span>
             <div className="ml-auto flex items-center gap-2">
-              <Badge variant="outline" className="text-xs font-normal capitalize">{issue.type}</Badge>
+              <Badge variant="outline" className="text-xs font-medium capitalize px-2.5 py-1 gap-1.5 border-border">
+                <TypeIcon size={11} className={typeInfo.color} />
+                {issue.type}
+              </Badge>
               <ShareIssueButton projectId={issue.projectId} issueId={issue.id} />
               <button
                 onClick={() => onOpenChange(false)}

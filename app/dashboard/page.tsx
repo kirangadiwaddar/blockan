@@ -144,6 +144,7 @@ export default function DashboardPage() {
   const doneIssues = issues.filter((i) => i.status === "Completed").length;
   const inProgress = issues.filter((i) => i.status === "In Progress").length;
   const activeSprint = sprints.find((s) => s.status === "active");
+  const activeSprintProject = activeSprint ? projects.find((p) => p.id === activeSprint.projectId || (p as any)._uuid === activeSprint.projectId) : null;
   const sprintIssues = activeSprint ? issues.filter((i) => i.sprintId === activeSprint.id) : [];
   const sprintDone = sprintIssues.filter((i) => i.status === "Completed").length;
   const overdue = issues.filter((i) => i.dueDate && new Date(i.dueDate) < new Date() && i.status !== "Completed").length;
@@ -353,7 +354,7 @@ export default function DashboardPage() {
               <Progress value={sprintIssues.length > 0 ? (sprintDone / sprintIssues.length) * 100 : 0} className="h-1.5" indicatorClassName={progressColor(sprintIssues.length > 0 ? Math.round((sprintDone / sprintIssues.length) * 100) : 0)} />
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{sprintDone}/{sprintIssues.length} done</span>
-                <Link href="/projects/ph/sprints" className={buttonVariants({ variant: "secondary", size: "sm", className: "h-6 text-[11px] px-2 cursor-pointer" })}>
+                <Link href={activeSprintProject ? `/projects/${activeSprintProject.id}/sprints` : "/projects"} className={buttonVariants({ variant: "secondary", size: "sm", className: "h-6 text-[11px] px-2 cursor-pointer" })}>
                   View <ArrowRight size={11} />
                 </Link>
               </div>

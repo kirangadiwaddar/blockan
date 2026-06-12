@@ -27,7 +27,7 @@ export function SiteHeader() {
       <ShortcutsDialog />
       <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-2">
-          <SidebarTrigger className="-ml-1 h-8 w-8 cursor-pointer" />
+          <SidebarTrigger className="hidden md:flex -ml-1 h-8 w-8 cursor-pointer" />
           <button
             onClick={() => {
               const event = new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true });

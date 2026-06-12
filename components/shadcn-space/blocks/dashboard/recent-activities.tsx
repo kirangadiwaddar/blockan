@@ -31,6 +31,7 @@ export default function RecentActivities() {
   const isInView = useInView(ref, { once: true, amount: 0.1 });
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   // Fallback: force-show after data loads even if intersection never fires
   const [forceVisible, setForceVisible] = useState(false);
 
@@ -46,7 +47,7 @@ export default function RecentActivities() {
         // Give IntersectionObserver 300ms to fire; if not, force visible
         setTimeout(() => setForceVisible(true), 300);
       })
-      .catch(console.error)
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -71,6 +72,13 @@ export default function RecentActivities() {
               </div>
             ))}
           </div>
+        ) : fetchError ? (
+          <EmptyState
+            icon={Zap}
+            title="Couldn't load activity"
+            description="There was a problem fetching recent activity. Try refreshing the page."
+            className="py-10"
+          />
         ) : activities.length === 0 ? (
           <EmptyState
             icon={Zap}

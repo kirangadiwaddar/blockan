@@ -140,18 +140,22 @@ export default function SettingsPage() {
   const [notifs, setNotifs] = useState(NOTIF_DEFAULTS);
   const [notifMsg, setNotifMsg] = useState<string | null>(null);
 
-  // Load persisted notif prefs from localStorage
+  // Load persisted notif prefs — Supabase user metadata takes priority, localStorage as fallback
   useEffect(() => {
     try {
+      const metaPrefs = user?.user_metadata?.notif_prefs;
+      if (metaPrefs) { setNotifs(metaPrefs); return; }
       const stored = localStorage.getItem("notifPrefs");
       if (stored) setNotifs(JSON.parse(stored));
     } catch {}
-  }, []);
+  }, [user]);
 
   const toggleNotif = (key: keyof typeof notifs) => {
     setNotifs((prev) => {
       const next = { ...prev, [key]: !prev[key] };
       localStorage.setItem("notifPrefs", JSON.stringify(next));
+      // Persist to Supabase user metadata so it survives browser clears
+      createClient().auth.updateUser({ data: { notif_prefs: next } }).catch(() => {});
       return next;
     });
     flashMsg(setNotifMsg, "Preferences saved");

@@ -98,12 +98,35 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+
+    const supabase = createClient();
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return;
+      if (event === "SIGNED_IN") {
+        if (session?.user) {
+          setLoading(true);
+          loadAll()
+            .catch(() => {})
+            .finally(() => { if (!cancelled) setLoading(false); });
+        }
+      } else if (event === "SIGNED_OUT") {
+        setProjects(hasSupabase ? [] : mockProjects);
+        setSprints(hasSupabase ? [] : mockSprints);
+        setLoading(false);
+      }
+    });
+
+    // Also fire immediately in case the session is already available
     setLoading(true);
     loadAll()
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [loadAll]);
+
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
+  }, [loadAll, hasSupabase]);
 
   const addProject = useCallback(async (p: Project) => {
     // Optimistic insert so the UI responds instantly
@@ -126,14 +149,13 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
     if (!result) {
       // Insert failed — revert the optimistic project so the UI stays honest
-      console.error("[addProject] DB insert failed — reverting optimistic update");
       setProjects((prev) => prev.filter((x) => x.id !== p.id));
       return;
     }
 
     // Re-fetch from DB: replaces the optimistic entry with the real row
     // (correct _uuid, member list, issue counts, etc.) and keeps uuidMap in sync.
-    await loadAll().catch(console.error);
+    await loadAll().catch(() => {});
   }, [loadAll]);
 
   const deleteProject = useCallback(async (slug: string) => {
@@ -144,7 +166,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const ok = await dbDeleteProject(uuid).catch(() => false);
     if (!ok) {
       // Revert on failure by re-fetching
-      await loadAll().catch(console.error);
+      await loadAll().catch(() => {});
     }
   }, [uuidMap, loadAll]);
 
@@ -173,7 +195,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   const updateSprintStatus = useCallback((id: string, status: Sprint["status"]) => {
     setSprints((prev) => prev.map((s) => s.id === id ? { ...s, status } : s));
-    dbUpdateSprintStatus(id, status).catch(console.error);
+    dbUpdateSprintStatus(id, status).catch(() => {});
   }, []);
 
   const sprintsForProject = useCallback(
@@ -198,7 +220,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     ));
     const projectUuid = uuidMap[projectSlug] ?? projectSlug;
     const result = await dbRemoveMember(projectUuid, userId);
-    if (!result.success) await loadAll().catch(console.error);
+    if (!result.success) await loadAll().catch(() => {});
   }, [uuidMap, loadAll]);
 
   const updateMemberRole = useCallback(async (projectSlug: string, userId: string, role: string) => {
@@ -209,7 +231,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     ));
     const projectUuid = uuidMap[projectSlug] ?? projectSlug;
     const result = await dbUpdateMemberRole(projectUuid, userId, role);
-    if (!result.success) await loadAll().catch(console.error);
+    if (!result.success) await loadAll().catch(() => {});
   }, [uuidMap, loadAll]);
 
   return (

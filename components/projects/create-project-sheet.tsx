@@ -62,7 +62,7 @@ export function CreateProjectSheet({ open, onOpenChange, onCreated }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col gap-0 p-0 sm:max-w-md">
+      <SheetContent className="flex flex-col gap-0 p-0 w-full sm:max-w-md">
         <SheetHeader className="px-6 py-5 border-b">
           <SheetTitle>Create Project</SheetTitle>
         </SheetHeader>
