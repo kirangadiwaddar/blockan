@@ -34,13 +34,14 @@ const MAX_AVATARS = 3;
 interface Props {
   issue: Issue;
   overlay?: boolean;
+  readOnly?: boolean;
   onClick?: (issue: Issue) => void;
   onDelete?: (id: string) => void;
 }
 
-export function IssueCard({ issue, overlay, onClick, onDelete }: Props) {
+export function IssueCard({ issue, overlay, readOnly, onClick, onDelete }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: issue.id, data: { issue } });
+    useSortable({ id: issue.id, data: { issue }, disabled: readOnly });
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -73,7 +74,8 @@ export function IssueCard({ issue, overlay, onClick, onDelete }: Props) {
       }}
     >
       <Card className={cn(
-        "rounded-xl cursor-grab active:cursor-grabbing select-none bg-card shadow-xs hover:shadow-sm transition-shadow",
+        "rounded-xl select-none bg-card shadow-xs hover:shadow-sm transition-shadow",
+        readOnly ? "cursor-pointer" : "cursor-grab active:cursor-grabbing",
         overlay && "rotate-2 shadow-lg",
       )}>
         <CardContent className="px-3.5 flex flex-col gap-2.5 space-y-2">
@@ -94,8 +96,8 @@ export function IssueCard({ issue, overlay, onClick, onDelete }: Props) {
               )}
               </div>
 
-              {/* ··· menu — stop propagation so card click doesn't fire */}
-              {onDelete && (
+              {/* ··· menu — hidden for read-only roles */}
+              {onDelete && !readOnly && (
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     className=" transition-opacity p-0.5 rounded hover:bg-muted cursor-pointer"

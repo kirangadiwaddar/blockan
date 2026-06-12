@@ -56,9 +56,10 @@ interface Props {
   activeSprintId?: string;
   toolbarSlot?: React.ReactNode;
   defaultOpenIssueId?: string;
+  readOnly?: boolean;
 }
 
-export function KanbanBoard({ initialIssues, members = [], projectId: propProjectId, activeSprintId, toolbarSlot, defaultOpenIssueId }: Props) {
+export function KanbanBoard({ initialIssues, members = [], projectId: propProjectId, activeSprintId, toolbarSlot, defaultOpenIssueId, readOnly }: Props) {
   const { issues: allIssues, updateIssue, addIssue: addToCtx, deleteIssue } = useIssues();
   const projectId = propProjectId ?? initialIssues[0]?.projectId;
   const issues = useMemo(
@@ -105,7 +106,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
   }, []);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: readOnly ? 999999 : 5 } })
   );
 
   const visibleColumns = columns.filter((c) => c.visible);
@@ -308,22 +309,24 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
             </DropdownMenu>
 
 
-            {/* Manage columns */}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setManageOpen(true)}
-                    className="size-8 cursor-pointer rounded-full"
-                  >
-                    <Settings2 size={13} />
-                  </Button>
-                }
-              />
-              <TooltipContent side="bottom">Manage columns</TooltipContent>
-            </Tooltip>
+            {/* Manage columns — hidden for read-only roles */}
+            {!readOnly && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setManageOpen(true)}
+                      className="size-8 cursor-pointer rounded-full"
+                    >
+                      <Settings2 size={13} />
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom">Manage columns</TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
       )}
@@ -345,9 +348,10 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                 label={col.label}
                 dot={col.dot}
                 issues={getByStatus(col.id)}
-                onAddIssue={(id) => setCreateSheet({ open: true, status: id })}
+                readOnly={readOnly}
+                onAddIssue={readOnly ? undefined : (id) => setCreateSheet({ open: true, status: id })}
                 onIssueClick={(issue) => setDetailSheet({ open: true, issue })}
-                onDeleteIssue={(id) => {
+                onDeleteIssue={readOnly ? undefined : (id) => {
                   deleteIssue(id);
                   setDetailSheet((s) => s.issue?.id === id ? { open: false, issue: null } : s);
                 }}
@@ -390,6 +394,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
       <IssueDetailSheet
         issue={detailSheet.issue}
         open={detailSheet.open}
+        readOnly={readOnly}
         onOpenChange={(open) => setDetailSheet((s) => ({ ...s, open }))}
         onUpdate={(updated) => {
           updateIssue(updated);

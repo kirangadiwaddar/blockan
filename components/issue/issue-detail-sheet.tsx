@@ -134,11 +134,12 @@ function ShareIssueButton({ projectId, issueId }: { projectId: string; issueId: 
 interface Props {
   issue: Issue | null;
   open: boolean;
+  readOnly?: boolean;
   onOpenChange: (open: boolean) => void;
   onUpdate?: (updated: Issue) => void;
 }
 
-export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props) {
+export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate }: Props) {
   const { getComments, addComment, loadComments, deleteComment } = useComments();
   const { projects, projectBySlug, sprintsForProject } = useProjects();
   const { user, displayName, avatarUrl, initials } = useUser();
@@ -260,8 +261,8 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
             </div>
           </div>
 
-          {/* Editable title */}
-          {editingTitle ? (
+          {/* Editable title — read-only roles see plain text */}
+          {!readOnly && editingTitle ? (
             <Textarea
               autoFocus
               rows={2}
@@ -283,11 +284,14 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
             />
           ) : (
             <SheetTitle
-              className="text-sm font-semibold leading-snug cursor-text hover:bg-muted/50 rounded-md px-1 -mx-1 py-0.5 transition-colors text-left group flex items-start gap-1"
-              onClick={() => { setEditingTitle(true); setTitleValue(issue.title); }}
+              className={cn(
+                "text-sm font-semibold leading-snug rounded-md px-1 -mx-1 py-0.5 transition-colors text-left group flex items-start gap-1",
+                !readOnly && "cursor-text hover:bg-muted/50"
+              )}
+              onClick={() => { if (!readOnly) { setEditingTitle(true); setTitleValue(issue.title); } }}
             >
               <span className="flex-1">{issue.title}</span>
-              <Pencil size={11} className="shrink-0 mt-1 opacity-0 group-hover:opacity-50 transition-opacity" />
+              {!readOnly && <Pencil size={11} className="shrink-0 mt-1 opacity-0 group-hover:opacity-50 transition-opacity" />}
             </SheetTitle>
           )}
         </SheetHeader>
@@ -300,7 +304,7 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Description</p>
-                {!editingDesc && (
+                {!readOnly && !editingDesc && (
                   <button
                     onClick={() => setEditingDesc(true)}
                     className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer"
@@ -309,7 +313,7 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                   </button>
                 )}
               </div>
-              {editingDesc ? (
+              {!readOnly && editingDesc ? (
                 <div className="flex flex-col gap-2">
                   <Textarea
                     autoFocus
@@ -336,10 +340,13 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                 </div>
               ) : (
                 <div
-                  onClick={() => setEditingDesc(true)}
-                  className="text-sm text-muted-foreground leading-relaxed cursor-text hover:bg-muted/30 rounded-md px-2 py-1.5 -mx-2 min-h-[36px] transition-colors"
+                  onClick={() => { if (!readOnly) setEditingDesc(true); }}
+                  className={cn(
+                    "text-sm text-muted-foreground leading-relaxed rounded-md px-2 py-1.5 -mx-2 min-h-[36px] transition-colors",
+                    !readOnly && "cursor-text hover:bg-muted/30"
+                  )}
                 >
-                  {issue.description || <span className="italic opacity-50">Click to add a description…</span>}
+                  {issue.description || <span className="italic opacity-50">{readOnly ? "No description." : "Click to add a description…"}</span>}
                 </div>
               )}
             </div>
@@ -354,99 +361,135 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                 <tbody>
                   {/* Status */}
                   <DetailRow icon={Layers} label="Status">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="w-full">
-                        <InlineSelect>
-                          <span className={cn("size-2 rounded-full shrink-0", statusInfo.dot)} />
-                          <span className="text-sm">{issue.status}</span>
-                        </InlineSelect>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="p-1 w-44">
-                        {STATUSES.map(({ value, dot }) => (
-                          <DropdownMenuItem key={value} onClick={() => update({ status: value })} className={cn("gap-2 cursor-pointer", issue.status === value && "bg-muted font-medium")}>
-                            <span className={cn("size-2 rounded-full shrink-0", dot)} />{value}
-                            {issue.status === value && <Check size={12} className="ml-auto text-primary" />}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {readOnly ? (
+                      <div className="flex items-center gap-2 px-1.5 py-2">
+                        <span className={cn("size-2 rounded-full shrink-0", statusInfo.dot)} />
+                        <span className="text-sm">{issue.status}</span>
+                      </div>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="w-full">
+                          <InlineSelect>
+                            <span className={cn("size-2 rounded-full shrink-0", statusInfo.dot)} />
+                            <span className="text-sm">{issue.status}</span>
+                          </InlineSelect>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="p-1 w-44">
+                          {STATUSES.map(({ value, dot }) => (
+                            <DropdownMenuItem key={value} onClick={() => update({ status: value })} className={cn("gap-2 cursor-pointer", issue.status === value && "bg-muted font-medium")}>
+                              <span className={cn("size-2 rounded-full shrink-0", dot)} />{value}
+                              {issue.status === value && <Check size={12} className="ml-auto text-primary" />}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </DetailRow>
 
                   {/* Priority */}
                   <DetailRow icon={Tag} label="Priority">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="w-full">
-                        <InlineSelect><PriorityBadge priority={issue.priority} /></InlineSelect>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="p-1 w-40">
-                        {PRIORITIES.map((p) => (
-                          <DropdownMenuItem key={p} onClick={() => update({ priority: p })} className={cn("gap-2 cursor-pointer", issue.priority === p && "bg-muted")}>
-                            <PriorityBadge priority={p} />
-                            {issue.priority === p && <Check size={12} className="ml-auto text-primary" />}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {readOnly ? (
+                      <div className="px-1.5 py-2"><PriorityBadge priority={issue.priority} /></div>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="w-full">
+                          <InlineSelect><PriorityBadge priority={issue.priority} /></InlineSelect>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="p-1 w-40">
+                          {PRIORITIES.map((p) => (
+                            <DropdownMenuItem key={p} onClick={() => update({ priority: p })} className={cn("gap-2 cursor-pointer", issue.priority === p && "bg-muted")}>
+                              <PriorityBadge priority={p} />
+                              {issue.priority === p && <Check size={12} className="ml-auto text-primary" />}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </DetailRow>
 
                   {/* Type */}
                   <DetailRow icon={TypeIcon} label="Type">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="w-full">
-                        <InlineSelect>
-                          <TypeIcon size={13} className={typeInfo.color} />
-                          <span className="text-sm">{issue.type}</span>
-                        </InlineSelect>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="p-1 w-36">
-                        {TYPES.map(({ value, icon: TIcon, color }) => (
-                          <DropdownMenuItem key={value} onClick={() => update({ type: value })} className={cn("gap-2 cursor-pointer", issue.type === value && "bg-muted")}>
-                            <TIcon size={13} className={color} />{value}
-                            {issue.type === value && <Check size={12} className="ml-auto text-primary" />}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {readOnly ? (
+                      <div className="flex items-center gap-2 px-1.5 py-2">
+                        <TypeIcon size={13} className={typeInfo.color} />
+                        <span className="text-sm">{issue.type}</span>
+                      </div>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="w-full">
+                          <InlineSelect>
+                            <TypeIcon size={13} className={typeInfo.color} />
+                            <span className="text-sm">{issue.type}</span>
+                          </InlineSelect>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="p-1 w-36">
+                          {TYPES.map(({ value, icon: TIcon, color }) => (
+                            <DropdownMenuItem key={value} onClick={() => update({ type: value })} className={cn("gap-2 cursor-pointer", issue.type === value && "bg-muted")}>
+                              <TIcon size={13} className={color} />{value}
+                              {issue.type === value && <Check size={12} className="ml-auto text-primary" />}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </DetailRow>
 
-                  {/* Assignees — uses Radix Popover (not Base UI Menu) so clicks inside don't close it */}
+                  {/* Assignees */}
                   <DetailRow icon={User} label="Assignees">
-                    <PopoverPrimitive.Root>
-                      <PopoverPrimitive.Trigger asChild>
-                        <button className="w-full">
-                          <InlineSelect>
-                            {issue.assignees.length > 0 ? (
-                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                <AvatarGroup>
-                                  {issue.assignees.slice(0, 3).map((a) => (
-                                    <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback>{a.initials}</AvatarFallback></Avatar>
-                                  ))}
-                                  {issue.assignees.length > 3 && <AvatarGroupCount className="text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>}
-                                </AvatarGroup>
-                                <span className="text-sm text-foreground truncate">{issue.assignees.length === 1 ? issue.assignees[0].name : `${issue.assignees.length} members`}</span>
-                              </div>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">Unassigned</span>
-                            )}
-                          </InlineSelect>
-                        </button>
-                      </PopoverPrimitive.Trigger>
-                      <PopoverPrimitive.Portal>
-                        <PopoverPrimitive.Content
-                          align="start"
-                          sideOffset={4}
-                          style={{ zIndex: 9999 }}
-                          className="w-64 rounded-xl border bg-popover text-popover-foreground shadow-lg outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
-                        >
-                          <MemberPicker
-                            members={availableMembers}
-                            selected={issue.assignees}
-                            onChange={(members) => update({ assignees: members })}
-                            placeholder="Search assignees…"
-                          />
-                        </PopoverPrimitive.Content>
-                      </PopoverPrimitive.Portal>
-                    </PopoverPrimitive.Root>
+                    {readOnly ? (
+                      <div className="flex items-center gap-2 px-1.5 py-2">
+                        {issue.assignees.length > 0 ? (
+                          <>
+                            <AvatarGroup>
+                              {issue.assignees.slice(0, 3).map((a) => (
+                                <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback>{a.initials}</AvatarFallback></Avatar>
+                              ))}
+                              {issue.assignees.length > 3 && <AvatarGroupCount className="text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>}
+                            </AvatarGroup>
+                            <span className="text-sm text-foreground truncate">{issue.assignees.length === 1 ? issue.assignees[0].name : `${issue.assignees.length} members`}</span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Unassigned</span>
+                        )}
+                      </div>
+                    ) : (
+                      <PopoverPrimitive.Root>
+                        <PopoverPrimitive.Trigger asChild>
+                          <button className="w-full">
+                            <InlineSelect>
+                              {issue.assignees.length > 0 ? (
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                  <AvatarGroup>
+                                    {issue.assignees.slice(0, 3).map((a) => (
+                                      <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback>{a.initials}</AvatarFallback></Avatar>
+                                    ))}
+                                    {issue.assignees.length > 3 && <AvatarGroupCount className="text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>}
+                                  </AvatarGroup>
+                                  <span className="text-sm text-foreground truncate">{issue.assignees.length === 1 ? issue.assignees[0].name : `${issue.assignees.length} members`}</span>
+                                </div>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">Unassigned</span>
+                              )}
+                            </InlineSelect>
+                          </button>
+                        </PopoverPrimitive.Trigger>
+                        <PopoverPrimitive.Portal>
+                          <PopoverPrimitive.Content
+                            align="start"
+                            sideOffset={4}
+                            style={{ zIndex: 9999 }}
+                            className="w-64 rounded-xl border bg-popover text-popover-foreground shadow-lg outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+                          >
+                            <MemberPicker
+                              members={availableMembers}
+                              selected={issue.assignees}
+                              onChange={(members) => update({ assignees: members })}
+                              placeholder="Search assignees…"
+                            />
+                          </PopoverPrimitive.Content>
+                        </PopoverPrimitive.Portal>
+                      </PopoverPrimitive.Root>
+                    )}
                   </DetailRow>
 
                   {/* Reporter */}
@@ -468,17 +511,35 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
 
                   {/* Due date */}
                   <DetailRow icon={CalendarDays} label="Due date">
-                    <DatePicker
-                      value={issue.dueDate}
-                      onChange={(v) => update({ dueDate: v || undefined })}
-                      onClear={() => update({ dueDate: undefined })}
-                      placeholder="No due date"
-                      className="h-8 border-0 shadow-none px-1.5"
-                    />
+                    {readOnly ? (
+                      <div className="px-1.5 py-2 text-sm text-muted-foreground">
+                        {issue.dueDate ? new Date(issue.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                      </div>
+                    ) : (
+                      <DatePicker
+                        value={issue.dueDate}
+                        onChange={(v) => update({ dueDate: v || undefined })}
+                        onClear={() => update({ dueDate: undefined })}
+                        placeholder="No due date"
+                        className="h-8 border-0 shadow-none px-1.5"
+                      />
+                    )}
                   </DetailRow>
 
                   {/* Sprint */}
                   <DetailRow icon={Play} label="Sprint">
+                    {readOnly ? (
+                      <div className="flex items-center gap-2 px-1.5 py-2">
+                        {currentSprint ? (
+                          <>
+                            <span className={cn("size-2 rounded-full shrink-0", currentSprint.status === "active" ? "bg-blue-500" : currentSprint.status === "completed" ? "bg-green-500" : "bg-muted-foreground")} />
+                            <span className="text-sm truncate">{currentSprint.name}</span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">No sprint</span>
+                        )}
+                      </div>
+                    ) : (
                     <DropdownMenu>
                       <DropdownMenuTrigger className="w-full">
                         <InlineSelect>
@@ -535,6 +596,7 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                         )}
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    )}
                   </DetailRow>
                 </tbody>
               </table>
@@ -640,21 +702,23 @@ export function IssueDetailSheet({ issue, open, onOpenChange, onUpdate }: Props)
                 </div>
               ))}
 
-              {/* Rich text composer */}
-              <div className="flex gap-3">
-                <Avatar className="size-7 shrink-0 mt-1">
-                  <AvatarImage src={avatarUrl} alt={displayName} />
-                  <AvatarFallback className="text-xs">{initials || "?"}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <RichTextEditor
-                    placeholder="Add a comment… supports **markdown**, images, lists, and more"
-                    onSubmit={submitComment}
-                    submitLabel="Comment"
-                    minHeight={100}
-                  />
+              {/* Rich text composer — hidden for read-only roles */}
+              {!readOnly && (
+                <div className="flex gap-3">
+                  <Avatar className="size-7 shrink-0 mt-1">
+                    <AvatarImage src={avatarUrl} alt={displayName} />
+                    <AvatarFallback className="text-xs">{initials || "?"}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <RichTextEditor
+                      placeholder="Add a comment… supports **markdown**, images, lists, and more"
+                      onSubmit={submitComment}
+                      submitLabel="Comment"
+                      minHeight={100}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <Separator />

@@ -18,6 +18,7 @@ import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { type Issue } from "@/lib/types";
+import { useProjectRole, canEditProject } from "@/lib/projects-context";
 import * as XLSX from "xlsx";
 import { createGoogleSpreadsheet } from "@/lib/google-sheets";
 import { ExportModal } from "@/components/board/export-modal";
@@ -65,6 +66,8 @@ function BoardPageContent({ projectId }: { projectId: string }) {
   const defaultOpenIssueId = searchParams.get("issue") ?? undefined;
   const { projects, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allIssues, loading: issuesLoading } = useIssues();
+  const role = useProjectRole(projectId);
+  const readOnly = !canEditProject(role);
 
   const [exportModal, setExportModal] = React.useState<{ open: boolean; mode: "xlsx" | "sheets" }>({ open: false, mode: "xlsx" });
   const [inviteOpen, setInviteOpen] = React.useState(false);
@@ -236,6 +239,7 @@ function BoardPageContent({ projectId }: { projectId: string }) {
           projectId={project?.id}
           activeSprintId={sprint?.id}
           defaultOpenIssueId={defaultOpenIssueId}
+          readOnly={readOnly}
           toolbarSlot={sprint ? (
             <div className="flex items-center gap-3 px-2 pr-4 py-2 rounded-full bg-muted/40 border min-w-0">
               <Badge className="bg-blue-500/10 text-blue-500 font-normal text-xs shrink-0">

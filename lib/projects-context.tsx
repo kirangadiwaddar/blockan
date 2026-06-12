@@ -257,3 +257,37 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 export function useProjects() {
   return useContext(Ctx);
 }
+
+export type ProjectRole = "owner" | "admin" | "member" | "viewer" | "guest" | null;
+
+/** Returns the current user's role in a given project (by slug or uuid). */
+export function useProjectRole(projectId: string | undefined): ProjectRole {
+  const { projects } = useProjects();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id ?? null);
+    });
+  }, []);
+
+  if (!projectId || !userId) return null;
+
+  const project = projects.find((p) => p.id === projectId || (p as any)._uuid === projectId);
+  if (!project) return null;
+
+  const member = project.members.find((m) => m.id === userId);
+  if (!member) return null;
+
+  const raw = (member.role ?? "member").toLowerCase();
+  if (raw === "owner") return "owner";
+  if (raw === "admin") return "admin";
+  if (raw === "viewer") return "viewer";
+  if (raw === "guest") return "guest";
+  return "member";
+}
+
+/** Returns true if the role can create/edit/delete issues and drag cards. */
+export function canEditProject(role: ProjectRole): boolean {
+  return role === "owner" || role === "admin" || role === "member";
+}

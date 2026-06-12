@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useProjects } from "@/lib/projects-context";
+import { useProjects, useProjectRole, canEditProject } from "@/lib/projects-context";
 import { useIssues } from "@/lib/issues-context";
 import { Issue, Sprint } from "@/lib/types";
 import AppSidebar from "@/components/shadcn-space/blocks/dashboard/app-sidebar";
@@ -371,6 +371,8 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
   const project   = projectBySlug(projectId) ?? projects[0];
   const sprintList = sprintsForProject(project?.id ?? projectId);
   const issueList  = allCtxIssues.filter((i) => i.projectId === project?.id);
+  const role       = useProjectRole(projectId);
+  const readOnly   = !canEditProject(role);
 
   const [detailIssue, setDetailIssue] = useState<Issue | null>(null);
   const [detailOpen, setDetailOpen]   = useState(false);
@@ -503,8 +505,8 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
           />
         )}
 
-        {/* ── Create sprint ── */}
-        <CreateSprintCard projectId={project.id} onCreated={addSprint} />
+        {/* ── Create sprint — hidden for read-only roles ── */}
+        {!readOnly && <CreateSprintCard projectId={project.id} onCreated={addSprint} />}
 
         {/* ── Completed sprints ── */}
         {completedSprints.length > 0 && (
@@ -527,6 +529,7 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
       <IssueDetailSheet
         issue={detailIssue}
         open={detailOpen}
+        readOnly={readOnly}
         onOpenChange={setDetailOpen}
         onUpdate={updateIssue}
       />

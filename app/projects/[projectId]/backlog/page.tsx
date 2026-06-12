@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useIssues } from "@/lib/issues-context";
-import { useProjects } from "@/lib/projects-context";
+import { useProjects, useProjectRole, canEditProject } from "@/lib/projects-context";
 import { Issue, IssuePriority, IssueType } from "@/lib/types";
 import AppSidebar from "@/components/shadcn-space/blocks/dashboard/app-sidebar";
 import { IssueDetailSheet } from "@/components/issue/issue-detail-sheet";
@@ -324,6 +324,8 @@ function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }
   const { projects, sprintsForProject, projectBySlug, uuidForSlug, loading: projectsLoading } = useProjects();
   const project        = projectBySlug(projectId) ?? projects[0];
   const projectSprints = sprintsForProject(project?.id ?? projectId);
+  const role           = useProjectRole(projectId);
+  const readOnly       = !canEditProject(role);
   const { issues: allCtxIssues, updateIssue, addIssue, deleteIssue, loading: issuesLoading } = useIssues();
   const issueList = useMemo(
     () => allCtxIssues.filter((i) => i.projectId === project?.id),
@@ -423,7 +425,7 @@ function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }
         </div>
 
         {/* ── Bulk action bar ── */}
-        {selectedIds.size > 0 && (
+        {!readOnly && selectedIds.size > 0 && (
           <Card className="rounded-xl">
             <CardContent className="flex items-center gap-3">
               <span className="text-sm font-medium">{selectedIds.size} selected</span>
@@ -479,8 +481,8 @@ function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }
           onSelect={toggleSelect}
           onIssueClick={openDetail}
           onCreated={addIssue}
-          onAddIssue={() => setCreateOpen(true)}
-          onDeleteIssue={setDeleteTarget}
+          onAddIssue={readOnly ? undefined : () => setCreateOpen(true)}
+          onDeleteIssue={readOnly ? undefined : setDeleteTarget}
           defaultOpen
           headerBadge={<ListTree size={13} className="text-muted-foreground" />}
         />
@@ -489,6 +491,7 @@ function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }
       <IssueDetailSheet
         issue={detailIssue}
         open={detailOpen}
+        readOnly={readOnly}
         onOpenChange={setDetailOpen}
         onUpdate={updateIssue}
       />
