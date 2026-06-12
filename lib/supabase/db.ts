@@ -480,6 +480,24 @@ export async function inviteMemberByEmail(data: {
   });
 
   if (error) return { success: false, error: error.message };
+
+  // Notify the invited user
+  const { data: { user: actor } } = await supabase.auth.getUser();
+  const { data: projectRow } = await supabase
+    .from("projects")
+    .select("name")
+    .eq("id", data.projectUuid)
+    .single();
+  try {
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      type: "invite",
+      title: `You were added to ${projectRow?.name ?? "a project"}`,
+      body: `You now have ${data.role ?? "member"} access.`,
+      actor_id: actor?.id ?? null,
+    });
+  } catch (_) { /* non-fatal */ }
+
   return { success: true };
 }
 
@@ -736,7 +754,7 @@ export async function createComment(data: {
 export type AppNotification = {
   id: string;
   userId: string;
-  type: "comment" | "assigned" | "mentioned";
+  type: "comment" | "assigned" | "mentioned" | "invite";
   title: string;
   body?: string;
   issueId?: string;
