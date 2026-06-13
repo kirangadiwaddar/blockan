@@ -510,9 +510,7 @@ export default function DashboardPage() {
                       <TableHead className="w-32 hidden sm:table-cell">Progress</TableHead>
                       <TableHead className="w-16 hidden sm:table-cell">%</TableHead>
                       <TableHead className="w-20">Open</TableHead>
-                      <TableHead className="w-20 hidden md:table-cell">Total</TableHead>
                       <TableHead className="w-24 hidden lg:table-cell">Team</TableHead>
-                      <TableHead className="w-20 hidden md:table-cell">Updated</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -550,9 +548,6 @@ export default function DashboardPage() {
                         <TableCell className="py-2">
                           <span className="text-sm font-medium">{openIssues}</span>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell py-2">
-                          <span className="text-xs text-muted-foreground">{totalIssues}</span>
-                        </TableCell>
                         <TableCell className="hidden lg:table-cell py-2">
                           <AvatarGroup>
                             {project.members.slice(0, 3).map((m) => (
@@ -565,11 +560,6 @@ export default function DashboardPage() {
                               <AvatarGroupCount className="size-7 text-xs">+{project.members.length - 3}</AvatarGroupCount>
                             )}
                           </AvatarGroup>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell py-2">
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(project.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          </span>
                         </TableCell>
                       </TableRow>
                     )})}
