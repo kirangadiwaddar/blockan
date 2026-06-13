@@ -8,11 +8,12 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { Project, Sprint } from "@/lib/types";
+import { Project, Sprint, Member } from "@/lib/types";
 import { projects as mockProjects, sprints as mockSprints } from "@/lib/mock-data";
 import {
   fetchProjects,
   fetchSprints,
+  fetchAllMembers,
   createProject as dbCreateProject,
   createSprint as dbCreateSprint,
   updateSprintStatus as dbUpdateSprintStatus,
@@ -21,10 +22,12 @@ import {
   updateMemberRole as dbUpdateMemberRole,
 } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
+import { useUser } from "@/lib/supabase/user-context";
 
 type ProjectsCtx = {
   projects: Project[];
   sprints: Sprint[];
+  allMembers: Member[];
   loading: boolean;
   addProject: (p: Project) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
@@ -35,11 +38,13 @@ type ProjectsCtx = {
   uuidForSlug: (slug: string) => string | undefined;
   removeMember: (projectSlug: string, userId: string) => Promise<void>;
   updateMemberRole: (projectSlug: string, userId: string, role: string) => Promise<void>;
+  refreshProjects: () => Promise<void>;
 };
 
 const Ctx = createContext<ProjectsCtx>({
   projects: mockProjects,
   sprints: mockSprints,
+  allMembers: [],
   loading: false,
   addProject: async () => {},
   deleteProject: async () => {},
@@ -50,6 +55,7 @@ const Ctx = createContext<ProjectsCtx>({
   uuidForSlug: () => undefined,
   removeMember: async () => {},
   updateMemberRole: async () => {},
+  refreshProjects: async () => {},
 });
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {
@@ -59,10 +65,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")
   );
 
-  const [projects, setProjects] = useState<Project[]>(hasSupabase ? [] : mockProjects);
-  const [sprints, setSprints]   = useState<Sprint[]>(hasSupabase ? [] : mockSprints);
-  const [loading, setLoading]   = useState(hasSupabase);
-  const [uuidMap, setUuidMap]   = useState<Record<string, string>>({}); // slug → uuid
+  const [projects, setProjects]     = useState<Project[]>(hasSupabase ? [] : mockProjects);
+  const [sprints, setSprints]       = useState<Sprint[]>(hasSupabase ? [] : mockSprints);
+  const [allMembers, setAllMembers] = useState<Member[]>([]);
+  const [loading, setLoading]       = useState(hasSupabase);
+  const [uuidMap, setUuidMap]       = useState<Record<string, string>>({}); // slug → uuid
 
   // Shared fetch-and-sync — called on mount and after mutations to keep state
   // perfectly in sync with the DB. Always updates state regardless of row count.
@@ -74,10 +81,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const dbProjects = await fetchProjects();
+    const [dbProjects, members] = await Promise.all([
+      fetchProjects(),
+      fetchAllMembers(),
+    ]);
 
     // Always sync — even if empty (handles deletions, fresh accounts, etc.)
     setProjects(dbProjects);
+    setAllMembers(members);
 
     // Rebuild slug → uuid map
     const map: Record<string, string> = {};
@@ -238,6 +249,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider value={{
       projects,
       sprints,
+      allMembers,
       loading,
       addProject,
       deleteProject,
@@ -248,6 +260,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       uuidForSlug,
       removeMember,
       updateMemberRole,
+      refreshProjects: loadAll,
     }}>
       {children}
     </Ctx.Provider>
@@ -263,13 +276,8 @@ export type ProjectRole = "owner" | "admin" | "member" | "viewer" | "guest" | nu
 /** Returns the current user's role in a given project (by slug or uuid). */
 export function useProjectRole(projectId: string | undefined): ProjectRole {
   const { projects } = useProjects();
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id ?? null);
-    });
-  }, []);
+  const { user } = useUser();
+  const userId = user?.id ?? null;
 
   if (!projectId || !userId) return null;
 
@@ -290,4 +298,9 @@ export function useProjectRole(projectId: string | undefined): ProjectRole {
 /** Returns true if the role can create/edit/delete issues and drag cards. */
 export function canEditProject(role: ProjectRole): boolean {
   return role === "owner" || role === "admin" || role === "member";
+}
+
+/** Returns true if the role can create/start/complete/delete sprints (owner & admin only). */
+export function canManageSprints(role: ProjectRole): boolean {
+  return role === "owner" || role === "admin";
 }

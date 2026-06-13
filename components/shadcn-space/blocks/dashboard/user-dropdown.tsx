@@ -26,7 +26,7 @@ const itemClass = "px-3 py-2 text-sm font-medium cursor-pointer gap-2.5 rounded-
 const UserDropdown = ({ trigger, defaultOpen, align = "end" }: Props) => {
   const router = useRouter();
   const { theme, toggle } = useTheme();
-  const { displayName, email, avatarUrl, initials } = useUser();
+  const { user, displayName, email, avatarUrl, initials } = useUser();
   const [isPending, startTransition] = useTransition();
 
   const handleSignOut = () => {
@@ -45,7 +45,7 @@ const UserDropdown = ({ trigger, defaultOpen, align = "end" }: Props) => {
             <div className="relative shrink-0">
               <Avatar>
                 <AvatarImage src={avatarUrl} alt={displayName} />
-                <AvatarFallback colorSeed={displayName}>{initials || "U"}</AvatarFallback>
+                <AvatarFallback colorSeed={user?.id}>{initials || "U"}</AvatarFallback>
               </Avatar>
               <span className="absolute right-0 bottom-0 size-2.5 rounded-full bg-green-500 ring-2 ring-background" />
             </div>

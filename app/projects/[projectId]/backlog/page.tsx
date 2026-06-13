@@ -279,7 +279,7 @@ function SprintGroup({
                           {issue.assignees.slice(0, 3).map((a) => (
                             <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted">
                               <AvatarImage src={a.avatar} alt={a.name} />
-                              <AvatarFallback className="text-xs">{a.initials}</AvatarFallback>
+                              <AvatarFallback className="text-xs" colorSeed={a.id}>{a.initials}</AvatarFallback>
                             </Avatar>
                           ))}
                           {issue.assignees.length > 3 && (
@@ -322,7 +322,7 @@ function SprintGroup({
 function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
   const { projects, sprintsForProject, projectBySlug, uuidForSlug, loading: projectsLoading } = useProjects();
-  const project        = projectBySlug(projectId) ?? projects[0];
+  const project        = projectBySlug(projectId);
   const projectSprints = sprintsForProject(project?.id ?? projectId);
   const role           = useProjectRole(projectId);
   const readOnly       = !canEditProject(role);

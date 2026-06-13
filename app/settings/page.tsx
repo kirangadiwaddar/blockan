@@ -355,7 +355,7 @@ export default function SettingsPage() {
                       <div className="relative shrink-0">
                         <Avatar className="size-20">
                           <AvatarImage src={avatarUrl} alt={displayName} />
-                          <AvatarFallback className="text-lg" colorSeed={displayName}>{initials || "U"}</AvatarFallback>
+                          <AvatarFallback className="text-lg" colorSeed={user?.id}>{initials || "U"}</AvatarFallback>
                         </Avatar>
                         {uploading && (
                           <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">

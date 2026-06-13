@@ -8,11 +8,7 @@ import { useIssues } from "@/lib/issues-context";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, Download, FileSpreadsheet, FileDown, Loader2, UserPlus } from "lucide-react";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
-  DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { CalendarDays, FileDown, UserPlus } from "lucide-react";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 import Link from "next/link";
@@ -20,8 +16,6 @@ import { useSearchParams } from "next/navigation";
 import { type Issue } from "@/lib/types";
 import { useProjectRole, canEditProject } from "@/lib/projects-context";
 import * as XLSX from "xlsx";
-import { createGoogleSpreadsheet } from "@/lib/google-sheets";
-import { ExportModal } from "@/components/board/export-modal";
 
 /* ─── Export helpers (outside component) ─────────────────── */
 
@@ -64,20 +58,17 @@ function downloadXlsx(issues: Issue[], filename: string, colKeys: string[]) {
 function BoardPageContent({ projectId }: { projectId: string }) {
   const searchParams = useSearchParams();
   const defaultOpenIssueId = searchParams.get("issue") ?? undefined;
-  const { projects, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
+  const { projects, allMembers, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allIssues, loading: issuesLoading } = useIssues();
   const role = useProjectRole(projectId);
   const readOnly = !canEditProject(role);
 
-  const [exportModal, setExportModal] = React.useState<{ open: boolean; mode: "xlsx" | "sheets" }>({ open: false, mode: "xlsx" });
   const [inviteOpen, setInviteOpen] = React.useState(false);
-  const [sheetsLoading, setSheetsLoading] = React.useState(false);
-  const [sheetsError, setSheetsError] = React.useState<string | null>(null);
 
-  const project = projectBySlug(projectId) ?? projects[0];
+  const project = projectBySlug(projectId);
   const sprints = sprintsForProject(project?.id ?? projectId);
   const sprint  = sprints.find((s) => s.status === "active");
-  const projectIssues = allIssues.filter((i) => i.projectId === project?.id);
+  const projectIssues = allIssues.filter((i) => i.projectId === (project?.id ?? projectId));
 
   const isLoading = projectsLoading || issuesLoading;
 
@@ -118,49 +109,22 @@ function BoardPageContent({ projectId }: { projectId: string }) {
   const key = project?.key ?? "issues";
   const projectName = project?.name ?? "Issues";
 
-  const handleExport = async (filename: string, statuses: string[]) => {
+  const handleExport = (filename: string, statuses: string[]) => {
     const filtered = projectIssues.filter((i) => statuses.includes(i.status));
     const allColKeys = Object.keys(COL_MAP);
-    if (exportModal.mode === "xlsx") {
-      downloadXlsx(filtered, `${filename}.xlsx`, allColKeys);
-      setExportModal({ open: false, mode: "xlsx" });
-    } else {
-      setSheetsError(null);
-      setSheetsLoading(true);
-      try {
-        const headers = allColKeys.map((k) => COL_LABELS[k] ?? k);
-        const rows = buildRows(filtered, allColKeys);
-        const url = await createGoogleSpreadsheet(filename, headers, rows);
-        window.open(url, "_blank");
-        setExportModal({ open: false, mode: "sheets" });
-      } catch (err: any) {
-        setSheetsError(err?.message ?? "Failed to create spreadsheet");
-      } finally {
-        setSheetsLoading(false);
-      }
-    }
+    downloadXlsx(filtered, `${filename}.xlsx`, allColKeys);
   };
 
   return (
     <AppSidebar>
       <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} projectId={project?.id ?? ""} />
-      <ExportModal
-        open={exportModal.open}
-        mode={exportModal.mode}
-        defaultName={`${projectName} - Issues`}
-        issueCount={projectIssues.length}
-        loading={sheetsLoading}
-        error={sheetsError}
-        onClose={() => setExportModal((s) => ({ ...s, open: false }))}
-        onExport={handleExport}
-      />
       <div className="flex flex-col gap-4 p-6 overflow-hidden w-full">
 
         {/* Title */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <div className={`avatar-orb ${project.color} size-7 rounded-full`} />
-            <h1 className="text-xl font-semibold">{project.name}</h1>
+            <div className={`avatar-orb ${project?.color} size-7 rounded-full`} />
+            <h1 className="text-xl font-semibold">{project?.name}</h1>
           </div>
 
           {/* Invite + Export buttons */}
@@ -173,69 +137,21 @@ function BoardPageContent({ projectId }: { projectId: string }) {
             <UserPlus size={14} />
             Invite
           </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <button
-                  type="button"
-                  className="flex items-center gap-2 h-9 px-3.5 rounded-lg border border-input bg-background text-sm hover:bg-muted/50 transition-colors cursor-pointer shrink-0"
-                >
-                  <Download size={14} />
-                  Export
-                </button>
-              }
-            />
-            <DropdownMenuContent align="end" className="w-64 p-1">
-              <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                {projectIssues.length} issue{projectIssues.length !== 1 ? "s" : ""} · {projectName}
-              </div>
-              <DropdownMenuSeparator />
-
-              {/* Download XLSX */}
-              <DropdownMenuItem
-                onClick={() => setExportModal({ open: true, mode: "xlsx" })}
-                className="gap-3 cursor-pointer py-2.5"
-              >
-                <span className="size-8 rounded-lg bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center shrink-0">
-                  <FileDown size={15} className="text-emerald-600 dark:text-emerald-400" />
-                </span>
-                <div>
-                  <div className="text-sm font-medium">Download XLSX</div>
-                  <div className="text-[11px] text-muted-foreground">Excel spreadsheet with all issues</div>
-                </div>
-              </DropdownMenuItem>
-
-              {/* Google Sheets */}
-              <DropdownMenuItem
-                onClick={() => { setSheetsError(null); setExportModal({ open: true, mode: "sheets" }); }}
-                disabled={sheetsLoading}
-                className="gap-3 cursor-pointer py-2.5"
-              >
-                <span className="size-8 rounded-lg bg-blue-50 dark:bg-blue-950 flex items-center justify-center shrink-0">
-                  {sheetsLoading
-                    ? <Loader2 size={15} className="text-blue-600 dark:text-blue-400 animate-spin" />
-                    : <FileSpreadsheet size={15} className="text-blue-600 dark:text-blue-400" />
-                  }
-                </span>
-                <div>
-                  <div className="text-sm font-medium">
-                    {sheetsLoading ? "Saving to Sheets…" : "Add to Google Sheets"}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {sheetsLoading ? "Please wait" : "Creates a new spreadsheet in your Drive"}
-                  </div>
-                </div>
-              </DropdownMenuItem>
-
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button
+            type="button"
+            onClick={() => handleExport(`${projectName} - Issues`, ["Todo","In Progress","Reviewing","Completed","Cancelled"])}
+            className="flex items-center gap-2 h-9 px-3.5 rounded-lg border border-input bg-background text-sm hover:bg-muted/50 transition-colors cursor-pointer shrink-0"
+          >
+            <FileDown size={14} />
+            Export XLSX
+          </button>
           </div>
         </div>
 
         {/* Board */}
         <KanbanBoard
           initialIssues={projectIssues}
-          members={project?.members ?? []}
+          members={allMembers}
           projectId={project?.id}
           activeSprintId={sprint?.id}
           defaultOpenIssueId={defaultOpenIssueId}

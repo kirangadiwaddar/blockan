@@ -141,7 +141,7 @@ interface Props {
 
 export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate }: Props) {
   const { getComments, addComment, loadComments, deleteComment } = useComments();
-  const { projects, projectBySlug, sprintsForProject } = useProjects();
+  const { projects, allMembers, projectBySlug, sprintsForProject } = useProjects();
   const { user, displayName, avatarUrl, initials } = useUser();
 
   const comments = issue ? getComments(issue.id) : [];
@@ -172,9 +172,9 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
 
   if (!issue) return null;
 
-  // Get project members + sprints for pickers
+  // Get project sprints for pickers; members are global across the workspace
   const project = projectBySlug(issue.projectId) ?? projects.find((p) => p.id === issue.projectId);
-  const availableMembers: Member[] = project?.members ?? [];
+  const availableMembers: Member[] = allMembers;
   const availableSprints = project ? sprintsForProject(project.id) : [];
   const currentSprint = availableSprints.find((s) => s.id === issue.sprintId);
 
@@ -204,17 +204,16 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
       authorAvatar: avatarUrl || undefined,
       body: html,
     });
-    // Notify issue reporter and assignees (skip self)
     if (user?.id) {
       import("@/lib/supabase/db").then(({ createNotification }) => {
         const actorId = user.id!;
         const snippet = html.replace(/<[^>]+>/g, "").slice(0, 80);
-        const targets = new Set([
+        const commentTargets = new Set([
           issue.reporter.id,
           ...issue.assignees.map((a) => a.id),
         ]);
-        targets.delete(actorId);
-        targets.forEach((uid) => {
+        commentTargets.delete(actorId);
+        commentTargets.forEach((uid) => {
           if (uid && uid !== "unknown") {
             createNotification({
               userId: uid,
@@ -442,7 +441,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                           <>
                             <AvatarGroup>
                               {issue.assignees.slice(0, 3).map((a) => (
-                                <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback colorSeed={a.name}>{a.initials}</AvatarFallback></Avatar>
+                                <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback colorSeed={a.id}>{a.initials}</AvatarFallback></Avatar>
                               ))}
                               {issue.assignees.length > 3 && <AvatarGroupCount className="text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>}
                             </AvatarGroup>
@@ -461,7 +460,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                   <AvatarGroup>
                                     {issue.assignees.slice(0, 3).map((a) => (
-                                      <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback colorSeed={a.name}>{a.initials}</AvatarFallback></Avatar>
+                                      <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted"><AvatarImage src={a.avatar} alt={a.name} /><AvatarFallback colorSeed={a.id}>{a.initials}</AvatarFallback></Avatar>
                                     ))}
                                     {issue.assignees.length > 3 && <AvatarGroupCount className="text-xs">+{issue.assignees.length - 3}</AvatarGroupCount>}
                                   </AvatarGroup>
@@ -495,7 +494,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                   {/* Reporter */}
                   <DetailRow icon={User} label="Reporter">
                     <div className="flex items-center gap-2 px-1.5 py-1">
-                      <Avatar className="size-7"><AvatarImage src={issue.reporter.avatar} alt={issue.reporter.name} /><AvatarFallback colorSeed={issue.reporter.name}>{issue.reporter.initials}</AvatarFallback></Avatar>
+                      <Avatar className="size-7"><AvatarImage src={issue.reporter.avatar} alt={issue.reporter.name} /><AvatarFallback colorSeed={issue.reporter.id}>{issue.reporter.initials}</AvatarFallback></Avatar>
                       <span className="text-sm font-medium">{issue.reporter.name}</span>
                     </div>
                   </DetailRow>
@@ -636,7 +635,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                 <div key={c.id} className="flex gap-3 group/comment">
                   <Avatar className="size-7 shrink-0 mt-1">
                     <AvatarImage src={c.authorAvatar} alt={c.authorName} />
-                    <AvatarFallback className="text-xs">{c.authorInitials}</AvatarFallback>
+                    <AvatarFallback className="text-xs" colorSeed={c.authorId}>{c.authorInitials}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
@@ -707,11 +706,11 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                 <div className="flex gap-3">
                   <Avatar className="size-7 shrink-0 mt-1">
                     <AvatarImage src={avatarUrl} alt={displayName} />
-                    <AvatarFallback className="text-xs">{initials || "?"}</AvatarFallback>
+                    <AvatarFallback className="text-xs" colorSeed={user?.id}>{initials || "?"}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <RichTextEditor
-                      placeholder="Add a comment… supports **markdown**, images, lists, and more"
+                      placeholder="Add a comment…"
                       onSubmit={submitComment}
                       submitLabel="Comment"
                       minHeight={100}

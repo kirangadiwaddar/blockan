@@ -133,7 +133,7 @@ function ProjectSwitcher({
 /* ── Sidebar user profile dropdown ───────────────────────── */
 function SidebarUserMenu() {
   const router = useRouter();
-  const { displayName, email, avatarUrl, initials } = useUser();
+  const { user, displayName, email, avatarUrl, initials } = useUser();
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -161,7 +161,7 @@ function SidebarUserMenu() {
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors cursor-pointer w-full">
             <Avatar className="size-8 shrink-0">
               <AvatarImage src={avatarUrl} alt={displayName} />
-              <AvatarFallback className="text-xs" colorSeed={displayName}>{initials || "U"}</AvatarFallback>
+              <AvatarFallback className="text-xs" colorSeed={user?.id}>{initials || "U"}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0 flex-1 text-left">
               <span className="text-sm font-medium truncate leading-tight">{displayName || "Loading…"}</span>

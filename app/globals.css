@@ -163,3 +163,39 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: oklch(0 0 0 / 55%); }
 .dark ::-webkit-scrollbar-thumb { background: oklch(1 0 0 / 40%); }
 .dark ::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 60%); }
+/* ─── Mention suggestion popup ────────────────────────────── */
+.mention-list-popup {
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  padding: 4px;
+  min-width: 180px;
+  max-width: 260px;
+}
+.mention-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: var(--foreground);
+}
+.mention-list-item:hover,
+.mention-list-item--active {
+  background: var(--muted);
+}
+.tippy-box[data-theme~='mention'] {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+.tippy-box[data-theme~='mention'] > .tippy-content {
+  padding: 0 !important;
+}

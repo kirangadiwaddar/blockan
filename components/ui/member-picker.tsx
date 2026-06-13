@@ -58,7 +58,7 @@ export function MemberPicker({
             >
               <Avatar className="size-4 shrink-0">
                 <AvatarImage src={m.avatar} alt={m.name} />
-                <AvatarFallback className="text-[8px]">{m.initials}</AvatarFallback>
+                <AvatarFallback className="text-[8px]" colorSeed={m.id}>{m.initials}</AvatarFallback>
               </Avatar>
               {m.name.split(" ")[0]}
               <button
@@ -145,7 +145,7 @@ export function MemberPicker({
               <div className="relative shrink-0">
                 <Avatar className="size-7">
                   <AvatarImage src={m.avatar} alt={m.name} />
-                  <AvatarFallback className="text-xs">{m.initials}</AvatarFallback>
+                  <AvatarFallback className="text-xs" colorSeed={m.id}>{m.initials}</AvatarFallback>
                 </Avatar>
                 {active && (
                   <span className="absolute -bottom-0.5 -right-0.5 size-3.5 rounded-full bg-primary flex items-center justify-center">

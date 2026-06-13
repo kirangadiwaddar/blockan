@@ -157,7 +157,7 @@ export function IssueCard({ issue, overlay, readOnly, onClick, onDelete }: Props
               <div className="flex items-center gap-1.5 shrink-0">
                 <Avatar className="size-7 ring-2 ring-background dark:ring-muted">
                   <AvatarImage src={issue.assignees[0].avatar} alt={issue.assignees[0].name} />
-                  <AvatarFallback className="text-xs">{issue.assignees[0].initials}</AvatarFallback>
+                  <AvatarFallback className="text-xs" colorSeed={issue.assignees[0].id}>{issue.assignees[0].initials}</AvatarFallback>
                 </Avatar>
               </div>
             )}
@@ -166,7 +166,7 @@ export function IssueCard({ issue, overlay, readOnly, onClick, onDelete }: Props
                 {issue.assignees.slice(0, MAX_AVATARS).map((a) => (
                   <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted">
                     <AvatarImage src={a.avatar} alt={a.name} />
-                    <AvatarFallback className="text-xs">{a.initials}</AvatarFallback>
+                    <AvatarFallback className="text-xs" colorSeed={a.id}>{a.initials}</AvatarFallback>
                   </Avatar>
                 ))}
                 {extra > 0 && (
