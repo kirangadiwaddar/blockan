@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useProjects, canManageSprints } from "@/lib/projects-context";
 import { useIssues } from "@/lib/issues-context";
 import { useUser } from "@/lib/supabase/user-context";
@@ -135,9 +136,10 @@ function DonutChart({ data, total }: { data: { name: string; count: number; fill
 /* ─── Page ────────────────────────────────────────────────── */
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { projects, sprints, loading: projectsLoading, addProject } = useProjects();
   const { issues, loading: issuesLoading } = useIssues();
-  const { displayName, user } = useUser();
+  const { displayName, user, loading: userLoading } = useUser();
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
@@ -182,7 +184,7 @@ export default function DashboardPage() {
     return { progress, openIssues: open, totalIssues: pi.length };
   };
 
-  const loading = projectsLoading || issuesLoading;
+  const loading = projectsLoading || issuesLoading || userLoading;
 
   if (loading && projects.length === 0) {
     return (
@@ -239,11 +241,11 @@ export default function DashboardPage() {
     );
   }
 
-  /* ── Onboarding — shown for brand new users with no projects ── */
+  /* ── Onboarding — shown only for users who have no projects at all ── */
   if (!loading && projects.length === 0) {
     return (
       <AppSidebar>
-        <CreateProjectSheet open={createProjectOpen} onOpenChange={setCreateProjectOpen} onCreated={async (p) => { await addProject(p); window.location.href = `/projects/${p.key.toLowerCase()}/board`; }} />
+        <CreateProjectSheet open={createProjectOpen} onOpenChange={setCreateProjectOpen} onCreated={async (p) => { await addProject(p); router.push(`/projects/${p.key.toLowerCase()}/board`); }} />
         <OnboardingScreen
           displayName={displayName}
           onCreateProject={() => setCreateProjectOpen(true)}

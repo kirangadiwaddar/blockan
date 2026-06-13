@@ -154,7 +154,10 @@ export function MemberPicker({
                 )}
               </div>
               <div className="flex flex-col min-w-0 flex-1">
-                <span className={cn("text-sm leading-tight truncate", active ? "font-semibold" : "font-medium")}>{m.name}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className={cn("text-sm leading-tight truncate", active ? "font-semibold" : "font-medium")}>{m.name}</span>
+                  {(m as any).isPending && <span className="text-[10px] px-1 py-0.5 rounded bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400 font-medium shrink-0">Pending</span>}
+                </div>
                 <span className="text-xs text-muted-foreground capitalize truncate">{m.role}</span>
               </div>
               {active && <Check size={13} className="text-primary shrink-0" />}

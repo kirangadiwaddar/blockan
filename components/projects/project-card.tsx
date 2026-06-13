@@ -23,7 +23,7 @@ export function ProjectCard({ project, onDelete }: { project: Project; onDelete?
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <div className="relative shrink-0" style={{ width: 44, height: 44 }}>
-              <svg className="absolute inset-0 rotate-90" width="44" height="44" viewBox="0 0 44 44">
+              <svg className="absolute inset-0 rotate-0" width="44" height="44" viewBox="0 0 44 44">
                 <circle cx="22" cy="22" r="19" fill="none" stroke="currentColor" strokeWidth="3" className="text-border" />
                 <circle
                   cx="22" cy="22" r="19" fill="none"

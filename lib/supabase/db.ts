@@ -73,9 +73,9 @@ export async function fetchAllMembers(): Promise<Member[]> {
     .select("id, full_name, avatar_url, email, is_pending")
     .order("full_name", { ascending: true });
   if (error || !data) return [];
+  // Include pending users so admin can assign tasks before they register
   return data
-    .filter((p: any) => !p.is_pending)
-    .map((p: any) => profileToMember(p))
+    .map((p: any) => ({ ...profileToMember(p), isPending: !!p.is_pending }))
     .filter(Boolean) as Member[];
 }
 
@@ -117,6 +117,18 @@ export async function fetchPendingInvites(): Promise<PendingInvite[]> {
 
 export async function fetchProjects(): Promise<Project[]> {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // Fetch projects where the current user is a member (covers owners + invited members)
+  const { data: memberRows } = await supabase
+    .from("project_members")
+    .select("project_id")
+    .eq("user_id", user.id);
+
+  const projectIds = (memberRows ?? []).map((r: any) => r.project_id);
+  if (projectIds.length === 0) return [];
+
   const { data, error } = await supabase
     .from("projects")
     .select(`
@@ -128,6 +140,7 @@ export async function fetchProjects(): Promise<Project[]> {
       ),
       issues(id, status)
     `)
+    .in("id", projectIds)
     .eq("status", "active")
     .order("created_at", { ascending: false });
 
@@ -884,7 +897,7 @@ export async function createComment(data: {
       });
 
       if (recipients.size > 0) {
-        await supabase.from("notifications").insert(
+        await sendAssignedNotifications(
           Array.from(recipients).map((uid) => ({
             user_id:  uid,
             type:     "comment",

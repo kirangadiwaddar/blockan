@@ -89,8 +89,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const displayName =
     profile?.full_name ||
     user?.user_metadata?.full_name ||
-    user?.email?.split("@")[0] ||
-    "User";
+    (!loading ? user?.email?.split("@")[0] || "User" : "");
   const email = user?.email ?? "";
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || "";
   const bio = profile?.bio ?? "";

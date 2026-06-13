@@ -106,59 +106,61 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
   const selectedRole = ROLES.find((r) => r.value === role) ?? ROLES[1];
 
   const handleInvite = async () => {
-    if (!email.trim() || targetProjects.length === 0) return;
+    if (!email.trim()) return;
     setLoading(true);
     setResult(null);
 
-    // Invite to each target project in sequence
+    // For project-scoped invite: only that project's UUID
+    // For global invite: empty [] — user joins workspace, gets added to projects on task assignment
+    const scopedProjectIds = projectId
+      ? targetProjects.map((p) => uuidForSlug(p.id) ?? (p as any)._uuid ?? p.id)
+      : [];
+
+    // Try adding existing user to project first (project-scoped only)
     let anySuccess = false;
     let lastError: string | undefined;
 
-    for (const project of targetProjects) {
-      const uuid = uuidForSlug(project.id) ?? (project as any)._uuid ?? project.id;
-      const res = await inviteMemberByEmail({ projectUuid: uuid, email: email.trim(), role });
-
-      if (res.success) {
-        anySuccess = true;
-      } else if (res.error?.includes("No Blockan account")) {
-        // User doesn't exist — create placeholder + send invite email + get link
-        const inviteRes = await inviteNewUser({
-          email: email.trim(),
-          projectIds: targetProjects.map((p) => uuidForSlug(p.id) ?? (p as any)._uuid ?? p.id),
-          role,
-          invitedBy: user?.id ?? "",
-        });
-        setLoading(false);
-        if (inviteRes.success) {
-          setInviteLink(inviteRes.inviteLink ?? null);
-          setResult({ success: true, message: `Invite created for ${email.trim()}.` });
-          setEmail("");
-          refreshProjects();
-        } else {
-          setResult({ success: false, message: inviteRes.error ?? "Failed to create invite" });
+    if (projectId && targetProjects.length > 0) {
+      for (const project of targetProjects) {
+        const uuid = uuidForSlug(project.id) ?? (project as any)._uuid ?? project.id;
+        const res = await inviteMemberByEmail({ projectUuid: uuid, email: email.trim(), role });
+        if (res.success) {
+          anySuccess = true;
+        } else if (!res.error?.includes("No Blockan account")) {
+          lastError = res.error;
         }
+      }
+      if (anySuccess) {
+        setLoading(false);
+        await refreshProjects();
+        setResult({ success: true, message: `${email.trim()} has been added to the project!` });
+        setEmail("");
+        setTimeout(onClose, 1800);
         return;
-      } else if (res.error && res.error !== "User is already a member of this project") {
-        lastError = res.error;
-      } else {
-        // already a member — count as success
-        anySuccess = true;
       }
     }
 
+    // User doesn't exist (or global invite) — create placeholder + invite link
+    const allAdminProjectIds = targetProjects.map(
+      (p) => uuidForSlug(p.id) ?? (p as any)._uuid ?? p.id
+    );
+    const inviteRes = await inviteNewUser({
+      email: email.trim(),
+      projectIds: scopedProjectIds,
+      allAdminProjectIds,
+      role,
+      invitedBy: user?.id ?? "",
+    });
     setLoading(false);
-    await refreshProjects();
-
-    if (anySuccess) {
-      setResult({
-        success: true,
-        message: `${email.trim()} has been added to the workspace!`,
-      });
+    if (inviteRes.success) {
+      setInviteLink(inviteRes.inviteLink ?? null);
+      setResult({ success: true, message: `Invite created for ${email.trim()}.` });
       setEmail("");
-      setTimeout(onClose, 1800);
+      refreshProjects();
     } else {
-      setResult({ success: false, message: lastError ?? "Something went wrong" });
+      setResult({ success: false, message: inviteRes.error ?? "Failed to create invite" });
     }
+
   };
 
   return (
@@ -205,10 +207,7 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
               <>
                 <Globe size={13} className="text-primary shrink-0" />
                 <span className="text-xs text-muted-foreground">
-                  Invite to <span className="font-medium text-foreground">all your projects</span>
-                  {targetProjects.length > 0 && (
-                    <span className="text-muted-foreground"> ({targetProjects.length} project{targetProjects.length !== 1 ? "s" : ""})</span>
-                  )}
+                  Invite to <span className="font-medium text-foreground">workspace</span>
                 </span>
               </>
             )}

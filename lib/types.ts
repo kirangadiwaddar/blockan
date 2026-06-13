@@ -9,6 +9,7 @@ export type Member = {
   avatar?: string;
   role: string;
   email?: string;
+  isPending?: boolean;
 };
 
 export type Issue = {
