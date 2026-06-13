@@ -509,7 +509,7 @@ export default function DashboardPage() {
                       <TableHead>Project</TableHead>
                       <TableHead className="w-32 hidden sm:table-cell">Progress</TableHead>
                       <TableHead className="w-16 hidden sm:table-cell">%</TableHead>
-                      <TableHead className="w-20">Open</TableHead>
+                      <TableHead className="w-20">Open issues</TableHead>
                       <TableHead className="w-24 hidden lg:table-cell">Team</TableHead>
                     </TableRow>
                   </TableHeader>

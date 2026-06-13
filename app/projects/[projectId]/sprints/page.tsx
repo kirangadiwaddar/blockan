@@ -48,7 +48,7 @@ import {
 import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronRight, Plus, CalendarDays, MoreHorizontal,
-  Play, CheckCheck, Archive, SquareStack, Flag,
+  Play, CheckCheck, Archive, Grid3x2, Flag,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -318,10 +318,9 @@ function CreateSprintCard({ projectId, onCreated }: { projectId: string; onCreat
   return (
     <>
       <Button
-        variant="secondary"
         size="sm"
         onClick={() => setOpen(true)}
-        className="gap-1.5 cursor-pointer w-fit"
+        className="gap-1.5 cursor-pointer"
       >
         <Plus size={14} /> Create sprint
       </Button>
@@ -445,12 +444,15 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
             <div className={`avatar-orb ${project.color} size-7 rounded-full`} />
             <h1 className="text-xl font-semibold">{project.name} — Sprints</h1>
           </div>
-          <Link
-            href={`/projects/${project.id}/board`}
-            className={buttonVariants({ variant: "outline", className: "cursor-pointer" })}
-          >
-            <SquareStack size={14} /> Board view
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/projects/${project.id}/board`}
+              className={buttonVariants({ variant: "outline", className: "cursor-pointer" })}
+            >
+              <Grid3x2 size={14} /> Board view
+            </Link>
+            {sprintAdmin && <CreateSprintCard projectId={project.id} onCreated={addSprint} />}
+          </div>
         </div>
 
         {/* ── Stats strip ── */}
@@ -512,8 +514,6 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
           />
         )}
 
-        {/* ── Create sprint — owner/admin only ── */}
-        {sprintAdmin && <CreateSprintCard projectId={project.id} onCreated={addSprint} />}
 
         {/* ── Completed sprints ── */}
         {completedSprints.length > 0 && (

@@ -138,8 +138,8 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
   const handleCreate = async () => {
     if (!title.trim() || creating) return;
 
-    const key = project?.key ?? "ISSUE";
-    const code = `${key}-${Math.floor(Math.random() * 9000 + 1000)}`;
+    const prefix = (project?.name ?? project?.key ?? "ISS").replace(/\s+/g, "").slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const code = `${prefix}-${Math.floor(Math.random() * 900 + 100)}`;
     const slug = projectId ?? project?.id ?? "ph";
     const uuid = uuidForSlug(slug);
 
@@ -211,7 +211,7 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
               placeholder="Issue title *"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="h-11 text-base font-medium border-0 border-b rounded-none px-0 focus-visible:ring-0 focus-visible:border-primary bg-transparent placeholder:text-muted-foreground/50"
+              className="h-11 text-base font-medium placeholder:text-muted-foreground/50"
               autoFocus
               onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) handleCreate(); }}
             />
@@ -306,42 +306,40 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
             </FieldSection>
 
             {/* Sprint */}
-            {availableSprints.length > 0 && (
-              <FieldSection label="Sprint">
-                <DropdownMenu>
-                  <DropdownMenuTrigger render={
-                    <SelectTrigger>
-                      <Play size={12} className="text-blue-500 shrink-0" />
-                      <span className="flex-1 text-left truncate">
-                        {availableSprints.find((s) => s.id === sprintId)?.name ?? "No sprint"}
-                      </span>
-                    </SelectTrigger>
-                  } />
-                  <DropdownMenuContent className="p-1 w-52">
+            <FieldSection label="Sprint">
+              <DropdownMenu>
+                <DropdownMenuTrigger render={
+                  <SelectTrigger disabled={availableSprints.length === 0}>
+                    <Play size={12} className="text-blue-500 shrink-0" />
+                    <span className="flex-1 text-left truncate">
+                      {availableSprints.find((s) => s.id === sprintId)?.name ?? "No sprint"}
+                    </span>
+                  </SelectTrigger>
+                } />
+                <DropdownMenuContent className="p-1 w-52">
+                  <DropdownMenuItem
+                    onClick={() => setSprintId(undefined)}
+                    className={cn("gap-2 cursor-pointer", !sprintId && "bg-muted")}
+                  >
+                    <span className="size-2 rounded-full bg-muted-foreground shrink-0" />
+                    No sprint
+                    {!sprintId && <span className="ml-auto text-primary text-xs">✓</span>}
+                  </DropdownMenuItem>
+                  {availableSprints.map((s) => (
                     <DropdownMenuItem
-                      onClick={() => setSprintId(undefined)}
-                      className={cn("gap-2 cursor-pointer", !sprintId && "bg-muted")}
+                      key={s.id}
+                      onClick={() => setSprintId(s.id)}
+                      className={cn("gap-2 cursor-pointer", sprintId === s.id && "bg-muted")}
                     >
-                      <span className="size-2 rounded-full bg-muted-foreground shrink-0" />
-                      No sprint
-                      {!sprintId && <span className="ml-auto text-primary text-xs">✓</span>}
+                      <span className={cn("size-2 rounded-full shrink-0", s.status === "active" ? "bg-blue-500" : "bg-muted-foreground")} />
+                      <span className="flex-1 truncate">{s.name}</span>
+                      {s.status === "active" && <span className="text-xs text-blue-500">Active</span>}
+                      {sprintId === s.id && <span className="ml-auto text-primary text-xs">✓</span>}
                     </DropdownMenuItem>
-                    {availableSprints.map((s) => (
-                      <DropdownMenuItem
-                        key={s.id}
-                        onClick={() => setSprintId(s.id)}
-                        className={cn("gap-2 cursor-pointer", sprintId === s.id && "bg-muted")}
-                      >
-                        <span className={cn("size-2 rounded-full shrink-0", s.status === "active" ? "bg-blue-500" : "bg-muted-foreground")} />
-                        <span className="flex-1 truncate">{s.name}</span>
-                        {s.status === "active" && <span className="text-xs text-blue-500">Active</span>}
-                        {sprintId === s.id && <span className="ml-auto text-primary text-xs">✓</span>}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </FieldSection>
-            )}
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </FieldSection>
 
             {/* Due date */}
             <FieldSection label="Due Date">
@@ -355,16 +353,6 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
               </div>
             </FieldSection>
 
-            {/* Reporter (read-only) */}
-            <FieldSection label="Reporter">
-              <div className="flex items-center gap-2 h-9 px-3 rounded-lg border border-input bg-muted/30 text-sm">
-                <Avatar className="size-5 shrink-0">
-                  <AvatarImage src={avatarUrl} alt={displayName} />
-                  <AvatarFallback className="text-[9px]">{initials || "?"}</AvatarFallback>
-                </Avatar>
-                <span className="truncate text-sm">{displayName || "You"}</span>
-              </div>
-            </FieldSection>
           </div>
 
           {/* Assignees — full width, searchable */}

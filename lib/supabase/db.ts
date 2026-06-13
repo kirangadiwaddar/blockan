@@ -4,6 +4,7 @@
  * mapping to/from DB column names is handled here.
  */
 import { createClient } from "@/lib/supabase/client";
+import { sendAssignedNotifications } from "@/lib/supabase/notification-actions";
 import type { Issue, Project, Sprint, Member } from "@/lib/types";
 
 /* ─── Type helpers ─────────────────────────────────────── */
@@ -499,8 +500,8 @@ export async function updateIssue(
         );
       }
 
-      // Notify newly added assignees
-      await supabase.from("notifications").insert(
+      // Notify newly added assignees via server action (bypasses RLS)
+      await sendAssignedNotifications(
         newlyAdded.map((uid) => ({
           user_id:  uid,
           type:     "assigned",

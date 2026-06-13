@@ -21,10 +21,6 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-const FALLBACK_COLORS = [
-  "bg-blue-500", "bg-purple-500", "bg-green-500",
-  "bg-orange-500", "bg-pink-500", "bg-yellow-500",
-];
 
 export default function RecentActivities() {
   const ref = useRef<HTMLDivElement>(null);
@@ -102,9 +98,7 @@ export default function RecentActivities() {
                   <div className="relative shrink-0">
                     <Avatar className="size-7">
                       <AvatarImage src={activity.authorAvatar} alt={activity.authorName} />
-                      <AvatarFallback
-                        className={`text-white text-xs font-medium ${FALLBACK_COLORS[index % FALLBACK_COLORS.length]}`}
-                      >
+                      <AvatarFallback className="text-xs" colorSeed={activity.authorId}>
                         {activity.authorInitials}
                       </AvatarFallback>
                     </Avatar>
