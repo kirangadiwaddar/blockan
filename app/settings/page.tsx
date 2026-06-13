@@ -290,10 +290,14 @@ export default function SettingsPage() {
     if (!user) return;
     setDeleting(true);
     try {
+      const { deleteAccount } = await import("@/lib/supabase/auth-actions");
+      const result = await deleteAccount(user.id);
+      if (result?.error) {
+        setDeleting(false);
+        flashMsg(setDeleteMsg, result.error);
+        return;
+      }
       const supabase = createClient();
-      // Clear profile data first
-      await supabase.from("profiles").delete().eq("id", user.id);
-      // Sign out — account deletion requires admin API; we sign out and clear data
       await supabase.auth.signOut();
       window.location.href = "/sign-in";
     } catch {

@@ -113,6 +113,21 @@ export async function verifyOtp(formData: FormData) {
   }
 }
 
+export async function deleteAccount(userId: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return { error: "Server misconfigured" };
+
+  const { createClient: createAdminClient } = await import("@supabase/supabase-js");
+  const admin = createAdminClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
 export async function signInWithOAuth(provider: "google" | "github") {
   try {
     const supabase = await createClient();

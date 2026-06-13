@@ -79,6 +79,18 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const fallbackCopy = (text: string) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  };
+
   if (!open) return null;
 
   // Project(s) to add the invitee to:
@@ -299,7 +311,12 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText(inviteLink);
+                    const text = inviteLink!;
+                    if (navigator.clipboard?.writeText) {
+                      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+                    } else {
+                      fallbackCopy(text);
+                    }
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                   }}

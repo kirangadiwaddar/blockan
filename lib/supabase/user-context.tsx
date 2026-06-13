@@ -39,14 +39,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string, userMeta?: Record<string, string>) => {
     const supabase = createClient();
     const { data } = await supabase
       .from("profiles")
       .select("full_name, avatar_url, bio")
       .eq("id", userId)
       .single();
-    if (data) setProfile(data as Profile);
+    if (data) {
+      // If DB has no full_name (e.g. trigger overwrote it), patch from user_metadata
+      if (!data.full_name && userMeta?.full_name) {
+        await supabase
+          .from("profiles")
+          .update({ full_name: userMeta.full_name })
+          .eq("id", userId);
+        data.full_name = userMeta.full_name;
+      }
+      setProfile(data as Profile);
+    }
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -60,7 +70,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const u = data.user ?? null;
       setUser(u);
       if (u) {
-        fetchProfile(u.id).finally(() => setLoading(false));
+        fetchProfile(u.id, u.user_metadata as Record<string, string>).finally(() => setLoading(false));
       } else {
         setLoading(false);
       }
@@ -69,7 +79,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null;
       setUser(u);
-      if (u) fetchProfile(u.id);
+      if (u) fetchProfile(u.id, u.user_metadata as Record<string, string>);
       else setProfile(null);
     });
 

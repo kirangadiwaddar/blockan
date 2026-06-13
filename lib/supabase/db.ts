@@ -4,6 +4,7 @@
  * mapping to/from DB column names is handled here.
  */
 import { createClient } from "@/lib/supabase/client";
+import { sendAssignedNotifications } from "@/lib/supabase/notification-actions";
 import type { Issue, Project, Sprint, Member } from "@/lib/types";
 
 /* ─── Type helpers ─────────────────────────────────────── */
@@ -147,7 +148,7 @@ export async function fetchProjects(): Promise<Project[]> {
       id: row.key.toLowerCase(),   // URL slug
       _uuid: row.id,               // Real DB uuid (stored for mutations)
       key: row.key,
-      code: row.code ?? `${row.key}-${Math.floor(1000 + Math.random() * 9000)}`,
+      code: row.code ?? row.key,
       name: row.name,
       description: row.description ?? "",
       color: normalizeProjectColor(row.color),
@@ -180,7 +181,7 @@ export async function createProject(data: {
     .insert({
       name: data.name,
       key: data.key.toUpperCase(),
-      code: `${data.key.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      code: data.key.toUpperCase(),
       description: data.description,
       color: data.color,
       owner_id: data.ownerId,
@@ -499,8 +500,8 @@ export async function updateIssue(
         );
       }
 
-      // Notify newly added assignees
-      await supabase.from("notifications").insert(
+      // Notify newly added assignees via server action (bypasses RLS)
+      await sendAssignedNotifications(
         newlyAdded.map((uid) => ({
           user_id:  uid,
           type:     "assigned",

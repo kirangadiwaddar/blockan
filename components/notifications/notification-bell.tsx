@@ -111,6 +111,7 @@ export function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((p) => !p)}
+        data-notification-bell
         className={cn(
           "relative size-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer",
           open ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"

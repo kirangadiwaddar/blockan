@@ -105,7 +105,7 @@ export default function ProjectsPage() {
       <CreateProjectSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        onCreated={(p) => addProject(p)}
+        onCreated={async (p) => { await addProject(p); window.location.href = `/projects/${p.key.toLowerCase()}/board`; }}
       />
 
       <ConfirmDialog

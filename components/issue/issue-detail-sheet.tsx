@@ -111,10 +111,24 @@ function ShareIssueButton({ projectId, issueId }: { projectId: string; issueId: 
     <button
       onClick={() => {
         const url = `${window.location.origin}${href}`;
-        navigator.clipboard.writeText(url).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        });
+        const doCopy = (text: string) => {
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).catch(() => {
+              const ta = document.createElement("textarea");
+              ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+              document.body.appendChild(ta); ta.focus(); ta.select();
+              document.execCommand("copy"); document.body.removeChild(ta);
+            });
+          } else {
+            const ta = document.createElement("textarea");
+            ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+            document.body.appendChild(ta); ta.focus(); ta.select();
+            document.execCommand("copy"); document.body.removeChild(ta);
+          }
+        };
+        doCopy(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       }}
       className={cn(
         "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium transition-colors cursor-pointer",
@@ -491,21 +505,29 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                     )}
                   </DetailRow>
 
-                  {/* Reporter */}
-                  <DetailRow icon={User} label="Reporter">
-                    <div className="flex items-center gap-2 px-1.5 py-1">
-                      <Avatar className="size-7"><AvatarImage src={issue.reporter.avatar} alt={issue.reporter.name} /><AvatarFallback colorSeed={issue.reporter.id}>{issue.reporter.initials}</AvatarFallback></Avatar>
-                      <span className="text-sm font-medium">{issue.reporter.name}</span>
-                    </div>
-                  </DetailRow>
 
                   {/* Story Points */}
                   <DetailRow icon={Layers} label="Points">
-                    <div className="px-1.5 py-2 text-sm">
-                      {issue.storyPoints
-                        ? <span className="inline-flex items-center gap-1 font-medium">{issue.storyPoints} <span className="text-xs text-muted-foreground font-normal">pts</span></span>
-                        : <span className="text-muted-foreground">—</span>}
-                    </div>
+                    {readOnly ? (
+                      <div className="px-1.5 py-2 text-sm">
+                        {issue.storyPoints
+                          ? <span className="inline-flex items-center gap-1 font-medium">{issue.storyPoints} <span className="text-xs text-muted-foreground font-normal">pts</span></span>
+                          : <span className="text-muted-foreground">—</span>}
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        placeholder="—"
+                        defaultValue={issue.storyPoints ?? ""}
+                        onBlur={(e) => {
+                          const v = e.target.value;
+                          update({ storyPoints: v ? parseInt(v) : undefined });
+                        }}
+                        className="w-full h-8 px-1.5 text-sm bg-transparent outline-none border-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-muted-foreground hover:bg-muted/50 rounded-md transition-colors"
+                      />
+                    )}
                   </DetailRow>
 
                   {/* Due date */}

@@ -137,14 +137,16 @@ function BoardPageContent({ projectId }: { projectId: string }) {
             <UserPlus size={14} />
             Invite
           </button>
-          <button
-            type="button"
-            onClick={() => handleExport(`${projectName} - Issues`, ["Todo","In Progress","Reviewing","Completed","Cancelled"])}
-            className="flex items-center gap-2 h-9 px-3.5 rounded-lg border border-input bg-background text-sm hover:bg-muted/50 transition-colors cursor-pointer shrink-0"
-          >
-            <FileDown size={14} />
-            Export XLSX
-          </button>
+          {projectIssues.length > 0 && (
+            <button
+              type="button"
+              onClick={() => handleExport(`${projectName} - Issues`, ["Todo","In Progress","Reviewing","Completed","Cancelled"])}
+              className="flex items-center gap-2 h-9 px-3.5 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+            >
+              <FileDown size={14} />
+              Export XLSX
+            </button>
+          )}
           </div>
         </div>
 

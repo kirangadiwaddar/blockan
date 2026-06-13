@@ -155,11 +155,31 @@ export default function TeamPage() {
     setRemoveTarget(null);
   };
 
+  const copyToClipboard = (text: string) => {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  };
+
+  const fallbackCopy = (text: string) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  };
+
   const handleResend = async (invite: PendingInvite) => {
     setResendingId(invite.id);
     const res = await resendInvite(invite.token);
     if (res.success && res.link) {
-      navigator.clipboard.writeText(res.link);
+      copyToClipboard(res.link);
       setCopiedLinkId(invite.id);
       setTimeout(() => setCopiedLinkId(null), 2000);
     }
@@ -169,7 +189,7 @@ export default function TeamPage() {
   const handleCopyLink = async (invite: PendingInvite) => {
     const res = await generateInviteLink(invite.token);
     if (res.success && res.link) {
-      navigator.clipboard.writeText(res.link);
+      copyToClipboard(res.link);
       setCopiedLinkId(invite.id);
       setTimeout(() => setCopiedLinkId(null), 2000);
     }

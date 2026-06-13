@@ -42,9 +42,9 @@ export function CreateProjectSheet({ open, onOpenChange, onCreated }: Props) {
   const handleCreate = () => {
     if (!canSubmit) return;
     const project: Project = {
-      id:          key.toLowerCase().replace(/\s+/g, "-"),
-      key:         key.toUpperCase().slice(0, 6),
-      code:        `${key.toUpperCase().slice(0, 6)}-${Math.floor(1000 + Math.random() * 9000)}`,
+      id:          key.toLowerCase(),
+      key:         key.toUpperCase(),
+      code:        key.toUpperCase(),
       name:        name.trim(),
       description: desc.trim() || `${name.trim()} project`,
       color,
@@ -75,8 +75,11 @@ export function CreateProjectSheet({ open, onOpenChange, onCreated }: Props) {
               placeholder="e.g. Phoenix App"
               value={name}
               onChange={(e) => {
-                setName(e.target.value);
-                if (!key) setKey(e.target.value.slice(0, 6).toUpperCase().replace(/\s+/g, ""));
+                const val = e.target.value;
+                setName(val);
+                const prefix = val.replace(/\s+/g, "").slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "");
+                const suffix = Math.floor(100 + Math.random() * 900);
+                setKey(`${prefix}-${suffix}`);
               }}
             />
           </div>
@@ -85,13 +88,13 @@ export function CreateProjectSheet({ open, onOpenChange, onCreated }: Props) {
             <Label htmlFor="proj-key">Key *</Label>
             <Input
               id="proj-key"
-              placeholder="e.g. PH"
+              placeholder="e.g. SUP-289"
               value={key}
-              onChange={(e) => setKey(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
+              onChange={(e) => setKey(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 8))}
               className="uppercase"
-              maxLength={6}
+              maxLength={8}
             />
-            <p className="text-xs text-muted-foreground">Short identifier used in issue codes</p>
+            <p className="text-xs text-muted-foreground">Short identifier used in issue codes (e.g. SUP → SUP-1, SUP-2…)</p>
           </div>
 
           <div className="flex flex-col gap-2">
