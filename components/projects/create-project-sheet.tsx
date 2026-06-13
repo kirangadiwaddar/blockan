@@ -75,8 +75,11 @@ export function CreateProjectSheet({ open, onOpenChange, onCreated }: Props) {
               placeholder="e.g. Phoenix App"
               value={name}
               onChange={(e) => {
-                setName(e.target.value);
-                if (!key) setKey(e.target.value.slice(0, 6).toUpperCase().replace(/\s+/g, ""));
+                const val = e.target.value;
+                setName(val);
+                const prefix = val.replace(/\s+/g, "").slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "");
+                const suffix = Math.floor(1000 + Math.random() * 9000);
+                setKey(`${prefix}-${suffix}`);
               }}
             />
           </div>
@@ -85,11 +88,11 @@ export function CreateProjectSheet({ open, onOpenChange, onCreated }: Props) {
             <Label htmlFor="proj-key">Key *</Label>
             <Input
               id="proj-key"
-              placeholder="e.g. PH"
+              placeholder="e.g. SUP-7865"
               value={key}
-              onChange={(e) => setKey(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
+              onChange={(e) => setKey(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 10))}
               className="uppercase"
-              maxLength={6}
+              maxLength={10}
             />
             <p className="text-xs text-muted-foreground">Short identifier used in issue codes</p>
           </div>
