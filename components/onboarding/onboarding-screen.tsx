@@ -36,7 +36,7 @@ export function OnboardingScreen({ displayName, onCreateProject }: OnboardingScr
   const firstName = displayName?.split(" ")[0] ?? "there";
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center px-4 py-16 bg-background">
+    <div className="h-full w-full flex flex-col items-center justify-center px-4 py-8 bg-background">
       <div className="w-full max-w-xl flex flex-col gap-10">
 
         {/* Hero */}
