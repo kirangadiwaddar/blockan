@@ -8,11 +8,12 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { Project, Sprint } from "@/lib/types";
+import { Project, Sprint, Member } from "@/lib/types";
 import { projects as mockProjects, sprints as mockSprints } from "@/lib/mock-data";
 import {
   fetchProjects,
   fetchSprints,
+  fetchAllMembers,
   createProject as dbCreateProject,
   createSprint as dbCreateSprint,
   updateSprintStatus as dbUpdateSprintStatus,
@@ -21,10 +22,12 @@ import {
   updateMemberRole as dbUpdateMemberRole,
 } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
+import { useUser } from "@/lib/supabase/user-context";
 
 type ProjectsCtx = {
   projects: Project[];
   sprints: Sprint[];
+  allMembers: Member[];
   loading: boolean;
   addProject: (p: Project) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
@@ -35,11 +38,13 @@ type ProjectsCtx = {
   uuidForSlug: (slug: string) => string | undefined;
   removeMember: (projectSlug: string, userId: string) => Promise<void>;
   updateMemberRole: (projectSlug: string, userId: string, role: string) => Promise<void>;
+  refreshProjects: () => Promise<void>;
 };
 
 const Ctx = createContext<ProjectsCtx>({
   projects: mockProjects,
   sprints: mockSprints,
+  allMembers: [],
   loading: false,
   addProject: async () => {},
   deleteProject: async () => {},
@@ -50,6 +55,7 @@ const Ctx = createContext<ProjectsCtx>({
   uuidForSlug: () => undefined,
   removeMember: async () => {},
   updateMemberRole: async () => {},
+  refreshProjects: async () => {},
 });
 
 export function ProjectsProvider({ children }: { children: ReactNode }) {
@@ -59,10 +65,11 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     !process.env.NEXT_PUBLIC_SUPABASE_URL.includes("placeholder")
   );
 
-  const [projects, setProjects] = useState<Project[]>(hasSupabase ? [] : mockProjects);
-  const [sprints, setSprints]   = useState<Sprint[]>(hasSupabase ? [] : mockSprints);
-  const [loading, setLoading]   = useState(hasSupabase);
-  const [uuidMap, setUuidMap]   = useState<Record<string, string>>({}); // slug → uuid
+  const [projects, setProjects]     = useState<Project[]>(hasSupabase ? [] : mockProjects);
+  const [sprints, setSprints]       = useState<Sprint[]>(hasSupabase ? [] : mockSprints);
+  const [allMembers, setAllMembers] = useState<Member[]>([]);
+  const [loading, setLoading]       = useState(hasSupabase);
+  const [uuidMap, setUuidMap]       = useState<Record<string, string>>({}); // slug → uuid
 
   // Shared fetch-and-sync — called on mount and after mutations to keep state
   // perfectly in sync with the DB. Always updates state regardless of row count.
@@ -74,10 +81,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const dbProjects = await fetchProjects();
+    const [dbProjects, members] = await Promise.all([
+      fetchProjects(),
+      fetchAllMembers(),
+    ]);
 
     // Always sync — even if empty (handles deletions, fresh accounts, etc.)
     setProjects(dbProjects);
+    setAllMembers(members);
 
     // Rebuild slug → uuid map
     const map: Record<string, string> = {};
@@ -98,12 +109,35 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+
+    const supabase = createClient();
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return;
+      if (event === "SIGNED_IN") {
+        if (session?.user) {
+          setLoading(true);
+          loadAll()
+            .catch(() => {})
+            .finally(() => { if (!cancelled) setLoading(false); });
+        }
+      } else if (event === "SIGNED_OUT") {
+        setProjects(hasSupabase ? [] : mockProjects);
+        setSprints(hasSupabase ? [] : mockSprints);
+        setLoading(false);
+      }
+    });
+
+    // Also fire immediately in case the session is already available
     setLoading(true);
     loadAll()
-      .catch(console.error)
+      .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [loadAll]);
+
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
+  }, [loadAll, hasSupabase]);
 
   const addProject = useCallback(async (p: Project) => {
     // Optimistic insert so the UI responds instantly
@@ -126,14 +160,13 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
     if (!result) {
       // Insert failed — revert the optimistic project so the UI stays honest
-      console.error("[addProject] DB insert failed — reverting optimistic update");
       setProjects((prev) => prev.filter((x) => x.id !== p.id));
       return;
     }
 
     // Re-fetch from DB: replaces the optimistic entry with the real row
     // (correct _uuid, member list, issue counts, etc.) and keeps uuidMap in sync.
-    await loadAll().catch(console.error);
+    await loadAll().catch(() => {});
   }, [loadAll]);
 
   const deleteProject = useCallback(async (slug: string) => {
@@ -144,7 +177,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const ok = await dbDeleteProject(uuid).catch(() => false);
     if (!ok) {
       // Revert on failure by re-fetching
-      await loadAll().catch(console.error);
+      await loadAll().catch(() => {});
     }
   }, [uuidMap, loadAll]);
 
@@ -173,7 +206,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   const updateSprintStatus = useCallback((id: string, status: Sprint["status"]) => {
     setSprints((prev) => prev.map((s) => s.id === id ? { ...s, status } : s));
-    dbUpdateSprintStatus(id, status).catch(console.error);
+    dbUpdateSprintStatus(id, status).catch(() => {});
   }, []);
 
   const sprintsForProject = useCallback(
@@ -198,7 +231,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     ));
     const projectUuid = uuidMap[projectSlug] ?? projectSlug;
     const result = await dbRemoveMember(projectUuid, userId);
-    if (!result.success) await loadAll().catch(console.error);
+    if (!result.success) await loadAll().catch(() => {});
   }, [uuidMap, loadAll]);
 
   const updateMemberRole = useCallback(async (projectSlug: string, userId: string, role: string) => {
@@ -209,13 +242,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     ));
     const projectUuid = uuidMap[projectSlug] ?? projectSlug;
     const result = await dbUpdateMemberRole(projectUuid, userId, role);
-    if (!result.success) await loadAll().catch(console.error);
+    if (!result.success) await loadAll().catch(() => {});
   }, [uuidMap, loadAll]);
 
   return (
     <Ctx.Provider value={{
       projects,
       sprints,
+      allMembers,
       loading,
       addProject,
       deleteProject,
@@ -226,6 +260,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       uuidForSlug,
       removeMember,
       updateMemberRole,
+      refreshProjects: loadAll,
     }}>
       {children}
     </Ctx.Provider>
@@ -234,4 +269,38 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
 export function useProjects() {
   return useContext(Ctx);
+}
+
+export type ProjectRole = "owner" | "admin" | "member" | "viewer" | "guest" | null;
+
+/** Returns the current user's role in a given project (by slug or uuid). */
+export function useProjectRole(projectId: string | undefined): ProjectRole {
+  const { projects } = useProjects();
+  const { user } = useUser();
+  const userId = user?.id ?? null;
+
+  if (!projectId || !userId) return null;
+
+  const project = projects.find((p) => p.id === projectId || (p as any)._uuid === projectId);
+  if (!project) return null;
+
+  const member = project.members.find((m) => m.id === userId);
+  if (!member) return null;
+
+  const raw = (member.role ?? "member").toLowerCase();
+  if (raw === "owner") return "owner";
+  if (raw === "admin") return "admin";
+  if (raw === "viewer") return "viewer";
+  if (raw === "guest") return "guest";
+  return "member";
+}
+
+/** Returns true if the role can create/edit/delete issues and drag cards. */
+export function canEditProject(role: ProjectRole): boolean {
+  return role === "owner" || role === "admin" || role === "member";
+}
+
+/** Returns true if the role can create/start/complete/delete sprints (owner & admin only). */
+export function canManageSprints(role: ProjectRole): boolean {
+  return role === "owner" || role === "admin";
 }

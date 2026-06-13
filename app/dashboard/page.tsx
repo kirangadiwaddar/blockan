@@ -1,6 +1,6 @@
 "use client";
 
-import { useProjects } from "@/lib/projects-context";
+import { useProjects, canManageSprints } from "@/lib/projects-context";
 import { useIssues } from "@/lib/issues-context";
 import { useUser } from "@/lib/supabase/user-context";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,6 +41,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CreateProjectSheet } from "@/components/projects/create-project-sheet";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
+import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn, progressColor } from "@/lib/utils";
@@ -136,25 +137,39 @@ function DonutChart({ data, total }: { data: { name: string; count: number; fill
 export default function DashboardPage() {
   const { projects, sprints, loading: projectsLoading, addProject } = useProjects();
   const { issues, loading: issuesLoading } = useIssues();
-  const { displayName } = useUser();
+  const { displayName, user } = useUser();
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  const totalIssues = issues.length;
-  const doneIssues = issues.filter((i) => i.status === "Completed").length;
-  const inProgress = issues.filter((i) => i.status === "In Progress").length;
+  // ── Role check: owner/admin of ANY project sees full workspace data ──
+  const isOrgAdmin = projects.some((p) => {
+    const me = p.members.find((m) => m.id === user?.id);
+    return me && canManageSprints(me.role as any);
+  });
+
+  // Owner/admin → all issues; member/viewer/guest → only assigned to them
+  const myIssues = issues.filter((i) =>
+    user?.id && i.assignees.some((a) => a.id === user.id)
+  );
+  const scopedIssues = isOrgAdmin ? issues : myIssues;
+
+  const totalIssues = scopedIssues.length;
+  const doneIssues  = scopedIssues.filter((i) => i.status === "Completed").length;
+  const inProgress  = scopedIssues.filter((i) => i.status === "In Progress").length;
   const activeSprint = sprints.find((s) => s.status === "active");
-  const sprintIssues = activeSprint ? issues.filter((i) => i.sprintId === activeSprint.id) : [];
+  const activeSprintProject = activeSprint ? projects.find((p) => p.id === activeSprint.projectId || (p as any)._uuid === activeSprint.projectId) : null;
+  const sprintIssues = activeSprint ? scopedIssues.filter((i) => i.sprintId === activeSprint.id) : [];
   const sprintDone = sprintIssues.filter((i) => i.status === "Completed").length;
-  const overdue = issues.filter((i) => i.dueDate && new Date(i.dueDate) < new Date() && i.status !== "Completed").length;
+  const overdue = scopedIssues.filter((i) => i.dueDate && new Date(i.dueDate) < new Date() && i.status !== "Completed").length;
 
   const priorityChart = ["Critical", "High", "Medium", "Low"].map((p) => ({
     name: p,
-    count: issues.filter((i) => i.priority === p).length,
+    count: scopedIssues.filter((i) => i.priority === p).length,
     fill: ({ Critical: "#ef4444", High: "#f97316", Medium: "#eab308", Low: "#22c55e" } as Record<string, string>)[p],
   }));
 
-  const recentIssues = [...issues].sort(
+  // Recent issues — all for admin, assigned-only for members
+  const recentIssues = [...scopedIssues].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   ).slice(0, 8);
 
@@ -226,65 +241,13 @@ export default function DashboardPage() {
 
   /* ── Onboarding — shown for brand new users with no projects ── */
   if (!loading && projects.length === 0) {
-    const steps = [
-      {
-        icon: FolderPlus,
-        color: "bg-blue-500/10 text-blue-500",
-        title: "Create your first project",
-        desc: "Set up a project to start tracking issues, sprints, and progress.",
-        action: <Button size="sm" className="cursor-pointer mt-2" onClick={() => setCreateProjectOpen(true)}>Create project</Button>,
-      },
-      {
-        icon: UserPlus,
-        color: "bg-violet-500/10 text-violet-500",
-        title: "Invite your team",
-        desc: "Bring in teammates so you can assign issues and collaborate.",
-        action: <Button size="sm" variant="outline" className="cursor-pointer mt-2" onClick={() => setInviteOpen(true)}>Invite member</Button>,
-      },
-      {
-        icon: SquarePen,
-        color: "bg-green-500/10 text-green-500",
-        title: "Create your first issue",
-        desc: "Break down work into issues, assign them, and track progress on the board.",
-        action: <Link href="/projects" className={cn(buttonVariants({ size: "sm", variant: "outline" }), "mt-2 cursor-pointer")}>Go to projects</Link>,
-      },
-    ];
-
     return (
       <AppSidebar>
         <CreateProjectSheet open={createProjectOpen} onOpenChange={setCreateProjectOpen} onCreated={(p) => addProject(p)} />
-        <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} />
-        <div className="flex flex-col items-center justify-center min-h-[80vh] p-6">
-          <div className="max-w-xl w-full flex flex-col items-center gap-8">
-            {/* Hero */}
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div className="size-14 rounded-2xl bg-muted flex items-center justify-center">
-                <Sparkles size={26} className="text-foreground" />
-              </div>
-              <h1 className="text-2xl font-bold">Welcome to Blockan{displayName ? `, ${displayName.split(" ")[0]}` : ""}!</h1>
-              <p className="text-sm text-muted-foreground max-w-sm">You're all set up. Follow these steps to get your workspace running.</p>
-            </div>
-
-            {/* Steps */}
-            <div className="w-full flex flex-col gap-3">
-              {steps.map((step, i) => (
-                <div key={i} className="rounded-xl border bg-card px-5 py-4 flex items-start gap-4">
-                  <div className={cn("size-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5", step.color)}>
-                    <step.icon size={17} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-muted-foreground">Step {i + 1}</span>
-                    </div>
-                    <p className="text-sm font-semibold mt-0.5">{step.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{step.desc}</p>
-                    {step.action}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <OnboardingScreen
+          displayName={displayName}
+          onCreateProject={() => setCreateProjectOpen(true)}
+        />
       </AppSidebar>
     );
   }
@@ -307,12 +270,12 @@ export default function DashboardPage() {
               <div className="mb-4">
                 <p className="text-base font-semibold">Welcome back,<br /></p>
                 <h1 className="text-xl font-bold mb-2">{displayName} 👋</h1>
-                <p className="text-xs text-muted-foreground mt-0.5">Here's what's happening across your projects today.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{isOrgAdmin ? "Here's what's happening across all projects today." : "Here's your assigned work across projects today."}</p>
               </div>
               <div className="flex items-center gap-4 flex-wrap">
                 <div>
                   <p className="text-lg font-bold leading-none">{totalIssues - doneIssues}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Open</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{isOrgAdmin ? "Open" : "My Open"}</p>
                 </div>
                 <Separator orientation="vertical" className="h-7" />
                 <div>
@@ -353,7 +316,7 @@ export default function DashboardPage() {
               <Progress value={sprintIssues.length > 0 ? (sprintDone / sprintIssues.length) * 100 : 0} className="h-1.5" indicatorClassName={progressColor(sprintIssues.length > 0 ? Math.round((sprintDone / sprintIssues.length) * 100) : 0)} />
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">{sprintDone}/{sprintIssues.length} done</span>
-                <Link href="/projects/ph/sprints" className={buttonVariants({ variant: "secondary", size: "sm", className: "h-6 text-[11px] px-2 cursor-pointer" })}>
+                <Link href={activeSprintProject ? `/projects/${activeSprintProject.id}/sprints` : "/projects"} className={buttonVariants({ variant: "secondary", size: "sm", className: "h-6 text-[11px] px-2 cursor-pointer" })}>
                   View <ArrowRight size={11} />
                 </Link>
               </div>
@@ -382,7 +345,7 @@ export default function DashboardPage() {
                   {Array.from(new Map(projects.flatMap((p) => p.members).map((m) => [m.id, m])).values()).slice(0, 5).map((m) => (
                     <Avatar key={m.id} className="size-7 ring-2 ring-background dark:ring-muted">
                       <AvatarImage src={m.avatar} alt={m.name} />
-                      <AvatarFallback className="text-xs">{m.initials}</AvatarFallback>
+                      <AvatarFallback className="text-xs" colorSeed={m.id}>{m.initials}</AvatarFallback>
                     </Avatar>
                   ))}
                 </AvatarGroup>
@@ -406,7 +369,7 @@ export default function DashboardPage() {
             <Card className="rounded-2xl h-full">
               <CardHeader className="border-b px-6">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Recent Issues</CardTitle>
+                  <CardTitle className="text-base">{isOrgAdmin ? "Recent Issues" : "My Recent Issues"}</CardTitle>
                   <CardDescription>Latest activity across all projects</CardDescription>
                 </div>
                 <CardAction>
@@ -431,9 +394,9 @@ export default function DashboardPage() {
                           <td colSpan={6}>
                             <EmptyState
                               icon={Inbox}
-                              title="No issues yet"
-                              description="Issues you create across projects will appear here."
-                              actions={[{ label: "Go to backlog", href: "/projects", variant: "outline" }]}
+                              title={isOrgAdmin ? "No issues yet" : "No issues assigned to you"}
+                              description={isOrgAdmin ? "Create issues across your projects to track work here." : "Issues assigned to you across projects will appear here."}
+                              actions={[{ label: "View projects", href: "/projects", variant: "outline" }]}
                             />
                           </td>
                         </tr>
@@ -467,7 +430,7 @@ export default function DashboardPage() {
                                 {issue.assignees.slice(0, 3).map((a) => (
                                   <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted">
                                     <AvatarImage src={a.avatar} alt={a.name} />
-                                    <AvatarFallback className="text-xs">{a.initials}</AvatarFallback>
+                                    <AvatarFallback className="text-xs" colorSeed={a.id}>{a.initials}</AvatarFallback>
                                   </Avatar>
                                 ))}
                                 {issue.assignees.length > 3 && (
@@ -491,16 +454,16 @@ export default function DashboardPage() {
               <CardHeader className="border-b px-5">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Issues by Priority</CardTitle>
-                  <CardDescription>{issues.length} total issues</CardDescription>
+                  <CardDescription>{isOrgAdmin ? `${scopedIssues.length} total` : `${myIssues.length} assigned to me`}</CardDescription>
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col items-center gap-5 py-6 px-5">
-                <DonutChart data={priorityChart} total={issues.length} />
+                <DonutChart data={priorityChart} total={myIssues.length} />
 
                 {/* Legend rows */}
                 <div className="flex flex-col gap-2.5 w-full">
                   {priorityChart.map((entry) => {
-                    const pct = issues.length > 0 ? Math.round((entry.count / issues.length) * 100) : 0;
+                    const pct = myIssues.length > 0 ? Math.round((entry.count / myIssues.length) * 100) : 0;
                     const meta = PRIORITY_META[entry.name];
                     return (
                       <div key={entry.name} className="flex items-center gap-3">
@@ -595,7 +558,7 @@ export default function DashboardPage() {
                             {project.members.slice(0, 3).map((m) => (
                               <Avatar key={m.id} className="size-7 ring-2 ring-background dark:ring-muted">
                                 <AvatarImage src={m.avatar} alt={m.name} />
-                                <AvatarFallback className="text-xs">{m.initials}</AvatarFallback>
+                                <AvatarFallback className="text-xs" colorSeed={m.id}>{m.initials}</AvatarFallback>
                               </Avatar>
                             ))}
                             {project.members.length > 3 && (

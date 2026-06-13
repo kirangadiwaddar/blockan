@@ -49,8 +49,10 @@ function profileToMember(p: {
   email?: string | null;
 } | null | undefined, fallbackRole = "member"): Member | null {
   if (!p) return null;
-  const name = p.full_name ?? "Unknown";
-  const initials = name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+  const name = p.full_name?.trim() || p.email?.trim() || "Unknown";
+  const initials = name.includes("@")
+    ? name[0].toUpperCase()
+    : name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
   return {
     id: p.id,
     name,
@@ -60,6 +62,55 @@ function profileToMember(p: {
     email: p.email ?? undefined,
   };
 }
+
+/* ─── All workspace members (global) ───────────────────── */
+
+export async function fetchAllMembers(): Promise<Member[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, email, is_pending")
+    .order("full_name", { ascending: true });
+  if (error || !data) return [];
+  return data
+    .filter((p: any) => !p.is_pending)
+    .map((p: any) => profileToMember(p))
+    .filter(Boolean) as Member[];
+}
+
+/* ─── Pending invites ───────────────────────────────────── */
+
+export type PendingInvite = {
+  id: string;
+  email: string;
+  role: string;
+  invitedAt: string;
+  projectId: string;
+  projectName: string;
+  projectColor: string;
+  token: string;
+};
+
+
+export async function fetchPendingInvites(): Promise<PendingInvite[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("pending_invites")
+    .select("id, email, role, invited_at, token, project_id, projects(name, color)")
+    .order("invited_at", { ascending: false });
+  if (error || !data) return [];
+  return data.map((row: any) => ({
+    id: row.id,
+    email: row.email,
+    role: row.role,
+    invitedAt: row.invited_at,
+    projectId: row.project_id,
+    projectName: row.projects?.name ?? "Unknown project",
+    projectColor: row.projects?.color ?? "",
+    token: row.token,
+  }));
+}
+
 
 /* ─── Projects ─────────────────────────────────────────── */
 
@@ -72,7 +123,7 @@ export async function fetchProjects(): Promise<Project[]> {
       project_members(
         role,
         user_id,
-        profiles!project_members_user_id_fkey(id, full_name, avatar_url, email)
+        profiles!project_members_user_id_fkey(id, full_name, avatar_url, email, is_pending)
       ),
       issues(id, status)
     `)
@@ -83,6 +134,7 @@ export async function fetchProjects(): Promise<Project[]> {
 
   return data.map((row) => {
     const members: Member[] = (row.project_members ?? [])
+      .filter((pm: any) => !pm.profiles?.is_pending)
       .map((pm: any) => profileToMember(pm.profiles, pm.role))
       .filter(Boolean) as Member[];
 
@@ -329,6 +381,23 @@ export async function createIssue(data: {
 
   if (error || !row) return null;
 
+  // Auto-add the assignee as a project member if not already one
+  if (data.assigneeId) {
+    const { data: existing } = await supabase
+      .from("project_members")
+      .select("user_id")
+      .eq("project_id", data.projectUuid)
+      .eq("user_id", data.assigneeId)
+      .maybeSingle();
+    if (!existing) {
+      await supabase.from("project_members").insert({
+        project_id: data.projectUuid,
+        user_id: data.assigneeId,
+        role: "member",
+      });
+    }
+  }
+
   const assigneeMember = profileToMember(row.assignee);
   const reporterMember = profileToMember(row.reporter) ?? {
     id: "unknown", name: "Unknown", initials: "?", role: "member",
@@ -383,15 +452,65 @@ export async function updateIssue(
   if (patch.dueDate !== undefined)     dbPatch.due_date = patch.dueDate;
   if (patch.labels !== undefined)      dbPatch.labels = patch.labels;
 
+  // Fetch current assignees + issue info BEFORE updating (needed for diff + project membership)
+  const [prevAssigneesRes, issueRes, actorRes] = await Promise.all([
+    patch.assigneeIds !== undefined
+      ? supabase.from("issue_assignees").select("user_id").eq("issue_id", id)
+      : Promise.resolve({ data: [] }),
+    supabase.from("issues").select("title, code, project_id").eq("id", id).single(),
+    supabase.auth.getUser(),
+  ]);
+
   const { error } = await supabase.from("issues").update(dbPatch).eq("id", id);
   if (error) return false;
 
   // Sync issue_assignees junction table when assigneeIds provided
   if (patch.assigneeIds !== undefined) {
+    const prevIds    = new Set((prevAssigneesRes.data ?? []).map((r: any) => r.user_id as string));
+    const actor      = actorRes.data.user;
+    const issueTitle = issueRes.data?.title      ?? "an issue";
+    const issueCode  = issueRes.data?.code       ?? "";
+    const projectId  = issueRes.data?.project_id ?? null;
+
     await supabase.from("issue_assignees").delete().eq("issue_id", id);
     if (patch.assigneeIds.length > 0) {
       await supabase.from("issue_assignees").insert(
         patch.assigneeIds.map((uid) => ({ issue_id: id, user_id: uid }))
+      );
+    }
+
+    // Auto-add newly assigned users as project members (role: member) so they
+    // can see the project in their sidebar. Skip if already a member.
+    const newlyAdded = patch.assigneeIds.filter(
+      (uid) => !prevIds.has(uid) && uid !== actor?.id
+    );
+    if (newlyAdded.length > 0 && projectId) {
+      const { data: existingMembers } = await supabase
+        .from("project_members")
+        .select("user_id")
+        .eq("project_id", projectId)
+        .in("user_id", newlyAdded);
+
+      const alreadyMembers = new Set((existingMembers ?? []).map((r: any) => r.user_id));
+      const toAdd = newlyAdded.filter((uid) => !alreadyMembers.has(uid));
+      if (toAdd.length > 0) {
+        await supabase.from("project_members").insert(
+          toAdd.map((uid) => ({ project_id: projectId, user_id: uid, role: "member" }))
+        );
+      }
+
+      // Notify newly added assignees
+      await supabase.from("notifications").insert(
+        newlyAdded.map((uid) => ({
+          user_id:  uid,
+          type:     "assigned",
+          title:    `You were assigned to ${issueCode ? `${issueCode}: ` : ""}${issueTitle}`,
+          body:     actor?.user_metadata?.full_name
+                      ? `Assigned by ${actor.user_metadata.full_name}`
+                      : "You have a new assignment.",
+          issue_id: id,
+          actor_id: actor?.id ?? null,
+        }))
       );
     }
   }
@@ -480,6 +599,24 @@ export async function inviteMemberByEmail(data: {
   });
 
   if (error) return { success: false, error: error.message };
+
+  // Notify the invited user
+  const { data: { user: actor } } = await supabase.auth.getUser();
+  const { data: projectRow } = await supabase
+    .from("projects")
+    .select("name")
+    .eq("id", data.projectUuid)
+    .single();
+  try {
+    await supabase.from("notifications").insert({
+      user_id: userId,
+      type: "invite",
+      title: `You were added to ${projectRow?.name ?? "a project"}`,
+      body: `You now have ${data.role ?? "member"} access.`,
+      actor_id: actor?.id ?? null,
+    });
+  } catch (_) { /* non-fatal */ }
+
   return { success: true };
 }
 
@@ -721,6 +858,45 @@ export async function createComment(data: {
     .single();
 
   if (error || !row) return null;
+
+  // Notify reporter + assignees about new comment (skip the comment author)
+  try {
+    const { data: issue } = await supabase
+      .from("issues")
+      .select(`
+        title, code, reporter_id,
+        issue_assignees(user_id)
+      `)
+      .eq("id", data.issueId)
+      .single();
+
+    if (issue) {
+      const authorName = row.author?.full_name ?? "Someone";
+      const issueRef   = issue.code ? `${issue.code}: ${issue.title}` : issue.title;
+
+      // Collect unique recipients: reporter + all assignees, minus the author
+      const recipients = new Set<string>();
+      if (issue.reporter_id && issue.reporter_id !== data.authorId)
+        recipients.add(issue.reporter_id);
+      (issue.issue_assignees ?? []).forEach((a: any) => {
+        if (a.user_id && a.user_id !== data.authorId) recipients.add(a.user_id);
+      });
+
+      if (recipients.size > 0) {
+        await supabase.from("notifications").insert(
+          Array.from(recipients).map((uid) => ({
+            user_id:  uid,
+            type:     "comment",
+            title:    `${authorName} commented on ${issueRef}`,
+            body:     row.body?.replace(/<[^>]+>/g, "").slice(0, 120) ?? "",
+            issue_id: data.issueId,
+            actor_id: data.authorId,
+          }))
+        );
+      }
+    }
+  } catch (_) { /* non-fatal */ }
+
   return {
     id: row.id,
     issueId: row.issue_id,
@@ -736,7 +912,7 @@ export async function createComment(data: {
 export type AppNotification = {
   id: string;
   userId: string;
-  type: "comment" | "assigned" | "mentioned";
+  type: "comment" | "assigned" | "mentioned" | "invite";
   title: string;
   body?: string;
   issueId?: string;
@@ -749,9 +925,12 @@ export type AppNotification = {
 
 export async function fetchNotifications(): Promise<AppNotification[]> {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
   const { data, error } = await supabase
     .from("notifications")
     .select(`*, actor:profiles!actor_id(id, full_name, avatar_url)`)
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
   if (error || !data) return [];

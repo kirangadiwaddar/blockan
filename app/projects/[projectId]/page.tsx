@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useProjects } from "@/lib/projects-context";
+import { useProjects, useProjectRole, canManageSprints } from "@/lib/projects-context";
 import { useIssues } from "@/lib/issues-context";
 import AppSidebar from "@/components/shadcn-space/blocks/dashboard/app-sidebar";
 import {
@@ -65,10 +65,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   const { projects, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allCtxIssues, loading: issuesLoading } = useIssues();
 
-  const project = projectBySlug(projectId) ?? projects[0];
+  const project = projectBySlug(projectId);
   const issues  = allCtxIssues.filter((i) => i.projectId === project?.id);
   const sprints = sprintsForProject(project?.id ?? projectId);
   const [inviteOpen, setInviteOpen] = React.useState(false);
+  const role       = useProjectRole(projectId);
+  const isAdmin    = canManageSprints(role); // owner/admin only
 
   if (!project && (projectsLoading || issuesLoading)) {
     return (
@@ -153,18 +155,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
               {project.members.slice(0, 5).map((m) => (
                 <Avatar key={m.id} className="size-7 ring-1 ring-background dark:ring-muted">
                   <AvatarImage src={m.avatar} alt={m.name} />
-                  <AvatarFallback className="text-xs">{m.initials}</AvatarFallback>
+                  <AvatarFallback className="text-xs" colorSeed={m.id}>{m.initials}</AvatarFallback>
                 </Avatar>
               ))}
               {project.members.length > 5 && (
                 <AvatarGroupCount className="size-7 text-xs">+{project.members.length - 5}</AvatarGroupCount>
               )}
             </AvatarGroup>
-            <Button size="sm" variant="outline" className="gap-1.5 cursor-pointer" onClick={() => setInviteOpen(true)}>
-              <UserPlus size={13} /> Invite
-            </Button>
+            {isAdmin && (
+              <Button size="sm" variant="outline" className="gap-1.5 cursor-pointer" onClick={() => setInviteOpen(true)}>
+                <UserPlus size={13} /> Invite
+              </Button>
+            )}
           </div>
-          <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} projectId={project.id} />
+          {isAdmin && <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} projectId={project.id} />}
         </div>
 
         {/* Nav links */}
@@ -345,7 +349,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
                           {issue.assignees.slice(0, 3).map((a) => (
                             <Avatar key={a.id} className="size-5 ring-1 ring-background dark:ring-muted">
                               <AvatarImage src={a.avatar} alt={a.name} />
-                              <AvatarFallback className="text-[8px]">{a.initials}</AvatarFallback>
+                              <AvatarFallback className="text-[8px]" colorSeed={a.id}>{a.initials}</AvatarFallback>
                             </Avatar>
                           ))}
                           {issue.assignees.length > 3 && (
@@ -369,7 +373,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
               <div key={m.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border hover:bg-accent transition-colors">
                 <Avatar className="size-6 shrink-0">
                   <AvatarImage src={m.avatar} alt={m.name} />
-                  <AvatarFallback className="text-[9px]">{m.initials}</AvatarFallback>
+                  <AvatarFallback className="text-[9px]" colorSeed={m.id}>{m.initials}</AvatarFallback>
                 </Avatar>
                 <div>
                   <p className="text-xs font-medium leading-tight">{m.name.split(" ")[0]}</p>

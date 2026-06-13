@@ -10,18 +10,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { inviteMemberByEmail } from "@/lib/supabase/db";
-import { sendMagicLinkInvite } from "@/lib/supabase/invite-actions";
-import { useProjects } from "@/lib/projects-context";
+import { inviteNewUser } from "@/lib/supabase/invite-actions";
+import { useProjects, canManageSprints } from "@/lib/projects-context";
+import { useUser } from "@/lib/supabase/user-context";
 import { cn } from "@/lib/utils";
 import {
   X, UserPlus, ChevronDown, Loader2, CheckCircle2, AlertCircle,
-  ShieldCheck, Users, Eye, UserCog, Crown,
+  ShieldCheck, Users, Eye, UserCog, Crown, Globe, Copy, Check,
 } from "lucide-react";
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  /** Pre-select a project by its UUID */
+  /** If provided, invite is scoped to this specific project (slug or uuid) */
   projectId?: string;
 }
 
@@ -67,61 +68,84 @@ const ROLES: RoleDef[] = [
 ];
 
 export function InviteMemberDialog({ open, onClose, projectId }: Props) {
-  const { projects, uuidForSlug } = useProjects();
-
-  const defaultSlug =
-    projectId
-      ? (projects.find((p) => p.id === projectId)?.id ?? projects[0]?.id ?? "")
-      : (projects[0]?.id ?? "");
-
-  // When projectId is provided the picker is locked to that project
-  const lockedProject = projectId ? projects.find((p) => p.id === projectId) : null;
+  const { projects, uuidForSlug, refreshProjects } = useProjects();
+  const { user } = useUser();
 
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<MemberRole>("member");
-  const [selectedProjectSlug, setSelectedProjectSlug] = useState<string>(defaultSlug);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [roleOpen, setRoleOpen] = useState(false);
-  const [projectOpen, setProjectOpen] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   if (!open) return null;
 
-  const selectedProject = projects.find((p) => p.id === selectedProjectSlug);
+  // Project(s) to add the invitee to:
+  // - If opened from a specific project page → only that project
+  // - If opened globally (dashboard/team) → all projects the current user manages
+  const targetProjects = projectId
+    ? projects.filter((p) => p.id === projectId || (p as any)._uuid === projectId)
+    : projects.filter((p) => {
+        const me = p.members.find((m) => m.id === user?.id);
+        return me && canManageSprints(me.role as any);
+      });
+
   const selectedRole = ROLES.find((r) => r.value === role) ?? ROLES[1];
 
   const handleInvite = async () => {
-    if (!email.trim() || !selectedProjectSlug) return;
-    const uuid = uuidForSlug(selectedProjectSlug) ?? selectedProjectSlug;
+    if (!email.trim() || targetProjects.length === 0) return;
     setLoading(true);
     setResult(null);
 
-    const res = await inviteMemberByEmail({ projectUuid: uuid, email: email.trim(), role });
+    // Invite to each target project in sequence
+    let anySuccess = false;
+    let lastError: string | undefined;
 
-    if (!res.success && res.error?.includes("No Blockan account")) {
-      // User doesn't exist — send a magic link invite email
-      const inviteRes = await sendMagicLinkInvite(email.trim());
-      setLoading(false);
-      setResult({
-        success: inviteRes.success,
-        message: inviteRes.success
-          ? `No account found. A sign-up link has been sent to ${email.trim()}.`
-          : inviteRes.error ?? "Failed to send invite email",
-      });
-      if (inviteRes.success) setEmail("");
-      return;
+    for (const project of targetProjects) {
+      const uuid = uuidForSlug(project.id) ?? (project as any)._uuid ?? project.id;
+      const res = await inviteMemberByEmail({ projectUuid: uuid, email: email.trim(), role });
+
+      if (res.success) {
+        anySuccess = true;
+      } else if (res.error?.includes("No Blockan account")) {
+        // User doesn't exist — create placeholder + send invite email + get link
+        const inviteRes = await inviteNewUser({
+          email: email.trim(),
+          projectIds: targetProjects.map((p) => uuidForSlug(p.id) ?? (p as any)._uuid ?? p.id),
+          role,
+          invitedBy: user?.id ?? "",
+        });
+        setLoading(false);
+        if (inviteRes.success) {
+          setInviteLink(inviteRes.inviteLink ?? null);
+          setResult({ success: true, message: `Invite created for ${email.trim()}.` });
+          setEmail("");
+          refreshProjects();
+        } else {
+          setResult({ success: false, message: inviteRes.error ?? "Failed to create invite" });
+        }
+        return;
+      } else if (res.error && res.error !== "User is already a member of this project") {
+        lastError = res.error;
+      } else {
+        // already a member — count as success
+        anySuccess = true;
+      }
     }
 
     setLoading(false);
-    setResult({
-      success: res.success,
-      message: res.success
-        ? `${email.trim()} has been added to the project!`
-        : res.error ?? "Something went wrong",
-    });
-    if (res.success) {
+    await refreshProjects();
+
+    if (anySuccess) {
+      setResult({
+        success: true,
+        message: `${email.trim()} has been added to the workspace!`,
+      });
       setEmail("");
       setTimeout(onClose, 1800);
+    } else {
+      setResult({ success: false, message: lastError ?? "Something went wrong" });
     }
   };
 
@@ -140,7 +164,11 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
             </div>
             <div>
               <h2 className="text-sm font-semibold leading-tight">Invite team member</h2>
-              <p className="text-xs text-muted-foreground">Add someone to your project</p>
+              <p className="text-xs text-muted-foreground">
+                {projectId
+                  ? `Adding to ${targetProjects[0]?.name ?? "this project"}`
+                  : "Adding to your workspace"}
+              </p>
             </div>
           </div>
           <button
@@ -152,6 +180,28 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
         </div>
 
         <div className="px-6 py-5 flex flex-col gap-4">
+          {/* Scope indicator */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/40 border">
+            {projectId ? (
+              <>
+                <span className={`avatar-orb ${targetProjects[0]?.color ?? "avatar-orb-blue"} size-5 rounded-full shrink-0`} />
+                <span className="text-xs text-muted-foreground">
+                  Invite to <span className="font-medium text-foreground">{targetProjects[0]?.name ?? "project"}</span>
+                </span>
+              </>
+            ) : (
+              <>
+                <Globe size={13} className="text-primary shrink-0" />
+                <span className="text-xs text-muted-foreground">
+                  Invite to <span className="font-medium text-foreground">all your projects</span>
+                  {targetProjects.length > 0 && (
+                    <span className="text-muted-foreground"> ({targetProjects.length} project{targetProjects.length !== 1 ? "s" : ""})</span>
+                  )}
+                </span>
+              </>
+            )}
+          </div>
+
           {/* Email */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="invite-email" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -167,53 +217,6 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
               autoFocus
               className="h-9"
             />
-          </div>
-
-          {/* Project — locked when inviting from a project page */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Project
-            </Label>
-            {lockedProject ? (
-              <div className="flex h-9 w-full items-center gap-2 rounded-lg border border-input bg-muted/40 px-3 text-sm text-muted-foreground select-none">
-                <span className={`avatar-orb ${lockedProject.color} size-5 rounded-full shrink-0`} />
-                <span className="truncate text-foreground font-medium">{lockedProject.name}</span>
-              </div>
-            ) : (
-              <DropdownMenu open={projectOpen} onOpenChange={setProjectOpen}>
-                <DropdownMenuTrigger
-                  render={
-                    <button className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-3 text-sm cursor-pointer hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {selectedProject && (
-                          <span className={`avatar-orb ${selectedProject.color} size-5 rounded-full shrink-0`} />
-                        )}
-                        <span className="truncate">{selectedProject?.name ?? "Select project"}</span>
-                      </div>
-                      <ChevronDown size={13} className="text-muted-foreground shrink-0" />
-                    </button>
-                  }
-                />
-                <DropdownMenuContent className="p-1 w-56">
-                  {projects.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => { setSelectedProjectSlug(p.id); setProjectOpen(false); }}
-                      className={cn(
-                        "flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-md hover:bg-muted cursor-pointer transition-colors",
-                        selectedProjectSlug === p.id && "bg-muted"
-                      )}
-                    >
-                      <span className={`avatar-orb ${p.color} size-5 rounded-full shrink-0`} />
-                      {p.name}
-                      {selectedProjectSlug === p.id && (
-                        <span className="ml-auto text-primary text-xs">✓</span>
-                      )}
-                    </button>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </div>
 
           {/* Role */}
@@ -257,7 +260,6 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
                   </button>
                 ))}
 
-                {/* Role comparison hint */}
                 <div className="mt-1 pt-2 border-t mx-1">
                   <div className="flex items-center gap-1.5 px-1 pb-0.5">
                     <Crown size={11} className="text-amber-500 shrink-0" />
@@ -282,6 +284,33 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
               {result.message}
             </div>
           )}
+
+          {/* Invite link copy box — shown when new user invited */}
+          {inviteLink && (
+            <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 px-3 py-3">
+              <p className="text-xs font-medium text-foreground">Share this invite link</p>
+              <p className="text-[11px] text-muted-foreground">
+                Email delivery may be limited. Copy and share this link directly via WhatsApp, Slack, or any other channel.
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <code className="flex-1 text-[11px] bg-background border rounded-md px-2 py-1.5 truncate text-muted-foreground">
+                  {inviteLink}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(inviteLink);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 transition-opacity cursor-pointer"
+                >
+                  {copied ? <Check size={11} /> : <Copy size={11} />}
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -291,7 +320,7 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
           </Button>
           <Button
             onClick={handleInvite}
-            disabled={!email.trim() || !selectedProjectSlug || loading}
+            disabled={!email.trim() || loading || targetProjects.length === 0}
             className="cursor-pointer gap-2 h-8 text-sm"
           >
             {loading ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}

@@ -80,7 +80,7 @@ export function ManageColumnsSheet({ open, columns, onOpenChange, onSave }: Prop
 
   return (
     <Sheet open={open} onOpenChange={handleOpen}>
-      <SheetContent className="flex flex-col gap-0 p-0 sm:max-w-sm">
+      <SheetContent className="flex flex-col gap-0 p-0 w-full sm:max-w-sm">
         <SheetHeader className="px-6 py-5 border-b">
           <SheetTitle>Manage Board Columns</SheetTitle>
         </SheetHeader>

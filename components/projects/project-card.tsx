@@ -78,7 +78,7 @@ export function ProjectCard({ project, onDelete }: { project: Project; onDelete?
             {project.members.slice(0, 4).map((m) => (
               <Avatar key={m.id} className="size-6 ring-1 ring-background dark:ring-muted">
                 <AvatarImage src={m.avatar} alt={m.name} />
-                <AvatarFallback className="text-[9px]">{m.initials}</AvatarFallback>
+                <AvatarFallback className="text-[9px]" colorSeed={m.id}>{m.initials}</AvatarFallback>
               </Avatar>
             ))}
             {project.members.length > 4 && (

@@ -23,12 +23,13 @@ interface Props {
   label: string;
   dot: string;
   issues: Issue[];
+  readOnly?: boolean;
   onAddIssue?: (colId: string) => void;
   onIssueClick?: (issue: Issue) => void;
   onDeleteIssue?: (id: string) => void;
 }
 
-export function KanbanColumn({ colId, label, dot, issues, onAddIssue, onIssueClick, onDeleteIssue }: Props) {
+export function KanbanColumn({ colId, label, dot, issues, readOnly, onAddIssue, onIssueClick, onDeleteIssue }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: colId });
   const theme = colTheme[colId] ?? fallback;
 
@@ -45,14 +46,16 @@ export function KanbanColumn({ colId, label, dot, issues, onAddIssue, onIssueCli
             {issues.length}
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="cursor-pointer text-muted-foreground hover:text-foreground"
-          onClick={() => onAddIssue?.(colId)}
-        >
-          <Plus size={14} />
-        </Button>
+        {!readOnly && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="cursor-pointer text-muted-foreground hover:text-foreground"
+            onClick={() => onAddIssue?.(colId)}
+          >
+            <Plus size={14} />
+          </Button>
+        )}
       </div>
 
       {/* coloured top accent bar */}
@@ -71,11 +74,12 @@ export function KanbanColumn({ colId, label, dot, issues, onAddIssue, onIssueCli
             <IssueCard
               key={issue.id}
               issue={issue}
+              readOnly={readOnly}
               onClick={onIssueClick}
               onDelete={onDeleteIssue}
             />
           ))}
-          {issues.length === 0 && (
+          {issues.length === 0 && !readOnly && (
             <button
               onClick={() => onAddIssue?.(colId)}
               className={cn(

@@ -9,7 +9,7 @@ import { useIssues } from "@/lib/issues-context";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, ExternalLink, Link2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Copy, Check, Link2 } from "lucide-react";
 import Link from "next/link";
 
 function IssuePermalinkContent() {
@@ -40,16 +40,10 @@ function IssuePermalinkContent() {
     <div className="flex flex-col h-full">
       {/* Breadcrumb header */}
       <div className="flex items-center gap-3 px-5 h-12 border-b shrink-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 gap-1.5 text-xs text-muted-foreground"
-          render={<Link href={`/projects/${params.projectId}/board`} />}
-          nativeButton={false}
-        >
+        <Link href={`/projects/${params.projectId}/board`} className="inline-flex items-center gap-1.5 h-7 px-3 text-xs text-muted-foreground rounded-md hover:bg-muted hover:text-foreground transition-colors">
           <ArrowLeft size={12} />
           Back to board
-        </Button>
+        </Link>
         <Separator orientation="vertical" className="h-4" />
         {loading ? (
           <Skeleton className="h-4 w-32" />
@@ -66,23 +60,20 @@ function IssuePermalinkContent() {
           <Button
             variant="outline"
             size="sm"
-            className="h-7 gap-1.5 text-xs"
+            className="h-7 gap-1.5 text-xs cursor-pointer"
             onClick={copyLink}
           >
-            <Link2 size={12} />
+            {copied ? <Check size={12} /> : <Copy size={12} />}
             {copied ? "Copied!" : "Copy link"}
           </Button>
           {project && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1.5 text-xs"
-              render={<Link href={`/projects/${params.projectId}/board`} />}
-              nativeButton={false}
+            <Link
+              href={`/projects/${params.projectId}/board`}
+              className="inline-flex items-center gap-1.5 h-7 px-3 text-xs text-muted-foreground rounded-md hover:bg-muted hover:text-foreground transition-colors"
             >
               <ExternalLink size={12} />
               Open board
-            </Button>
+            </Link>
           )}
         </div>
       </div>

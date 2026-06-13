@@ -91,11 +91,11 @@ function SelectTrigger({ children, className, ...props }: { children: React.Reac
 
 export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprintId, onOpenChange, onCreated }: Props) {
   const { displayName, email, avatarUrl, initials, user } = useUser();
-  const { projects, projectBySlug, uuidForSlug, sprintsForProject } = useProjects();
+  const { projects, allMembers, projectBySlug, uuidForSlug, sprintsForProject } = useProjects();
 
-  // Determine project + members + sprints
+  // Determine project + sprints
   const project = projectId ? projectBySlug(projectId) : projects[0];
-  const availableMembers: Member[] = project?.members ?? [];
+  const availableMembers: Member[] = allMembers;
   const availableSprints = project ? sprintsForProject(project.id).filter((s) => s.status === "active" || s.status === "planned") : [];
 
   // Form state
@@ -192,7 +192,7 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex flex-col gap-0 p-0 sm:max-w-lg">
+      <SheetContent className="flex flex-col gap-0 p-0 w-full sm:max-w-lg">
         <SheetHeader className="px-6 py-4 border-b">
           <div className="flex items-center gap-2">
             <TypeIcon size={15} className={selectedType.color} />
@@ -375,7 +375,7 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
                   <div key={a.id} className="flex items-center gap-1.5 bg-muted rounded-full pl-1 pr-2 py-0.5">
                     <Avatar className="size-5">
                       <AvatarImage src={a.avatar} alt={a.name} />
-                      <AvatarFallback className="text-[9px]">{a.initials}</AvatarFallback>
+                      <AvatarFallback className="text-[9px]" colorSeed={a.id}>{a.initials}</AvatarFallback>
                     </Avatar>
                     <span className="text-xs">{a.name.split(" ")[0]}</span>
                     <button

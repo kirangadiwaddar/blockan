@@ -51,11 +51,12 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const supabase = createClient();
+
     async function load() {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       if (!url || url.includes("placeholder")) return;
 
-      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
@@ -97,8 +98,12 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
 
-      // Realtime subscription
+      // Realtime subscription — tear down any existing channel first
       if (!cancelled) {
+        if (realtimeChannelRef.current) {
+          realtimeChannelRef.current.unsubscribe();
+          realtimeChannelRef.current = null;
+        }
         const channel = supabase
           .channel("issues-realtime")
           .on(
@@ -152,15 +157,27 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
         realtimeChannelRef.current = channel;
       }
     }
-    load().catch(console.error);
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return;
+      if (event === "SIGNED_IN") {
+        if (session?.user) load().catch(() => {});
+      } else if (event === "SIGNED_OUT") {
+        setIssues(hasSupabase ? [] : mockIssues);
+        setLoading(false);
+      }
+    });
+
+    load().catch(() => {});
+
     return () => {
       cancelled = true;
+      listener.subscription.unsubscribe();
       if (realtimeChannelRef.current) {
         realtimeChannelRef.current.unsubscribe();
         realtimeChannelRef.current = null;
       }
     };
-  }, []);
+  }, [hasSupabase]);
 
   const updateIssue = useCallback((updated: Issue) => {
     setIssues((prev) => {
@@ -214,7 +231,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       points: updated.storyPoints,
       dueDate: updated.dueDate ?? null,
       labels: updated.labels ?? [],
-    }).catch(console.error);
+    }).catch(() => {});
   }, []);
 
   const addIssue = useCallback((issue: Issue) => {
@@ -223,7 +240,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
 
   const deleteIssue = useCallback((id: string) => {
     setIssues((prev) => prev.filter((i) => i.id !== id));
-    dbDeleteIssue(id).catch(console.error);
+    dbDeleteIssue(id).catch(() => {});
   }, []);
 
   return (

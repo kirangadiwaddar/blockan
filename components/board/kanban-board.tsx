@@ -56,9 +56,10 @@ interface Props {
   activeSprintId?: string;
   toolbarSlot?: React.ReactNode;
   defaultOpenIssueId?: string;
+  readOnly?: boolean;
 }
 
-export function KanbanBoard({ initialIssues, members = [], projectId: propProjectId, activeSprintId, toolbarSlot, defaultOpenIssueId }: Props) {
+export function KanbanBoard({ initialIssues, members = [], projectId: propProjectId, activeSprintId, toolbarSlot, defaultOpenIssueId, readOnly }: Props) {
   const { issues: allIssues, updateIssue, addIssue: addToCtx, deleteIssue } = useIssues();
   const projectId = propProjectId ?? initialIssues[0]?.projectId;
   const issues = useMemo(
@@ -105,7 +106,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
   }, []);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: readOnly ? 999999 : 5 } })
   );
 
   const visibleColumns = columns.filter((c) => c.visible);
@@ -175,7 +176,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                             <span className="flex items-center gap-1.5">
                               <Avatar className="size-4">
                                 <AvatarImage src={m.avatar} alt={m.name} />
-                                <AvatarFallback className="text-[8px]">{m.initials}</AvatarFallback>
+                                <AvatarFallback className="text-[8px]" colorSeed={m.id}>{m.initials}</AvatarFallback>
                               </Avatar>
                               {m.name.split(" ")[0]}
                             </span>
@@ -193,6 +194,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                         autoFocus
                         value={assigneeSearch}
                         onChange={(e) => setAssigneeSearch(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
                         placeholder="Search assignee…"
                         className="flex-1 text-xs bg-transparent outline-none placeholder:text-muted-foreground"
                       />
@@ -214,7 +216,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                           >
                             <Avatar className="size-6 shrink-0">
                               <AvatarImage src={m.avatar} alt={m.name} />
-                              <AvatarFallback className="text-[9px]">{m.initials}</AvatarFallback>
+                              <AvatarFallback className="text-[9px]" colorSeed={m.id}>{m.initials}</AvatarFallback>
                             </Avatar>
                             <span className="flex-1 truncate text-sm">{m.name}</span>
                             {active && <Check size={12} className="shrink-0" />}
@@ -308,22 +310,24 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
             </DropdownMenu>
 
 
-            {/* Manage columns */}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setManageOpen(true)}
-                    className="size-8 cursor-pointer rounded-full"
-                  >
-                    <Settings2 size={13} />
-                  </Button>
-                }
-              />
-              <TooltipContent side="bottom">Manage columns</TooltipContent>
-            </Tooltip>
+            {/* Manage columns — hidden for read-only roles */}
+            {!readOnly && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setManageOpen(true)}
+                      className="size-8 cursor-pointer rounded-full"
+                    >
+                      <Settings2 size={13} />
+                    </Button>
+                  }
+                />
+                <TooltipContent side="bottom">Manage columns</TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
       )}
@@ -345,9 +349,10 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
                 label={col.label}
                 dot={col.dot}
                 issues={getByStatus(col.id)}
-                onAddIssue={(id) => setCreateSheet({ open: true, status: id })}
+                readOnly={readOnly}
+                onAddIssue={readOnly ? undefined : (id) => setCreateSheet({ open: true, status: id })}
                 onIssueClick={(issue) => setDetailSheet({ open: true, issue })}
-                onDeleteIssue={(id) => {
+                onDeleteIssue={readOnly ? undefined : (id) => {
                   deleteIssue(id);
                   setDetailSheet((s) => s.issue?.id === id ? { open: false, issue: null } : s);
                 }}
@@ -390,6 +395,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
       <IssueDetailSheet
         issue={detailSheet.issue}
         open={detailSheet.open}
+        readOnly={readOnly}
         onOpenChange={(open) => setDetailSheet((s) => ({ ...s, open }))}
         onUpdate={(updated) => {
           updateIssue(updated);

@@ -9,8 +9,12 @@ const ORB_COLORS = ["avatar-orb-blue","avatar-orb-violet","avatar-orb-pink","ava
 
 function orbColorForInitial(text?: string | null): string {
   if (!text) return ORB_COLORS[0];
-  const code = text.charCodeAt(0);
-  return ORB_COLORS[code % ORB_COLORS.length];
+  // djb2 hash across all characters so different initials get different colors
+  let hash = 5381;
+  for (let i = 0; i < text.length; i++) {
+    hash = ((hash << 5) + hash + text.charCodeAt(i)) >>> 0;
+  }
+  return ORB_COLORS[hash % ORB_COLORS.length];
 }
 
 function Avatar({
@@ -49,9 +53,10 @@ function AvatarImage({ className, ...props }: AvatarPrimitive.Image.Props) {
 function AvatarFallback({
   className,
   children,
+  colorSeed,
   ...props
-}: AvatarPrimitive.Fallback.Props) {
-  const text = typeof children === "string" ? children : undefined;
+}: AvatarPrimitive.Fallback.Props & { colorSeed?: string }) {
+  const text = colorSeed ?? (typeof children === "string" ? children : undefined);
   const orbColor = orbColorForInitial(text);
   return (
     <AvatarPrimitive.Fallback

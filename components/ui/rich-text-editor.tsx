@@ -21,15 +21,11 @@ import {
 import { cn } from "@/lib/utils";
 import { Lightbox, useLightbox } from "@/components/ui/lightbox";
 
-/* ─── Toolbar button ─────────────────────────────────────── */
-function ToolBtn({
-  onClick, active, disabled, title, children,
-}: {
-  onClick: () => void;
-  active?: boolean;
-  disabled?: boolean;
-  title?: string;
-  children: React.ReactNode;
+/* ── Toolbar helpers ─────────────────────────────────────────── */
+
+function ToolBtn({ onClick, active, disabled, title, children }: {
+  onClick: () => void; active?: boolean; disabled?: boolean;
+  title?: string; children: React.ReactNode;
 }) {
   return (
     <button
@@ -52,7 +48,6 @@ function Divider() {
   return <div className="w-px h-4 bg-border mx-0.5 shrink-0" />;
 }
 
-/* ─── Toolbar ────────────────────────────────────────────── */
 function Toolbar({ editor, onImageInsert }: { editor: Editor; onImageInsert: () => void }) {
   const setLink = () => {
     const prev = editor.getAttributes("link").href ?? "";
@@ -64,93 +59,37 @@ function Toolbar({ editor, onImageInsert }: { editor: Editor; onImageInsert: () 
 
   return (
     <div className="flex items-center flex-wrap gap-0.5 px-2 py-1.5 border-b bg-muted/30">
-      {/* Undo / Redo */}
-      <ToolBtn title="Undo" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}>
-        <Undo2 size={13} />
-      </ToolBtn>
-      <ToolBtn title="Redo" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()}>
-        <Redo2 size={13} />
-      </ToolBtn>
-
+      <ToolBtn title="Undo" onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()}><Undo2 size={13} /></ToolBtn>
+      <ToolBtn title="Redo" onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()}><Redo2 size={13} /></ToolBtn>
       <Divider />
-
-      {/* Headings */}
-      <ToolBtn title="Heading 1" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive("heading", { level: 1 })}>
-        <Heading1 size={13} />
-      </ToolBtn>
-      <ToolBtn title="Heading 2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })}>
-        <Heading2 size={13} />
-      </ToolBtn>
-      <ToolBtn title="Heading 3" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })}>
-        <Heading3 size={13} />
-      </ToolBtn>
-
+      <ToolBtn title="Heading 1" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} active={editor.isActive("heading", { level: 1 })}><Heading1 size={13} /></ToolBtn>
+      <ToolBtn title="Heading 2" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })}><Heading2 size={13} /></ToolBtn>
+      <ToolBtn title="Heading 3" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })}><Heading3 size={13} /></ToolBtn>
       <Divider />
-
-      {/* Inline marks */}
-      <ToolBtn title="Bold" onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")}>
-        <Bold size={13} />
-      </ToolBtn>
-      <ToolBtn title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")}>
-        <Italic size={13} />
-      </ToolBtn>
-      <ToolBtn title="Underline" onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")}>
-        <UnderlineIcon size={13} />
-      </ToolBtn>
-      <ToolBtn title="Strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")}>
-        <Strikethrough size={13} />
-      </ToolBtn>
-      <ToolBtn title="Inline code" onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")}>
-        <Code size={13} />
-      </ToolBtn>
-
+      <ToolBtn title="Bold" onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")}><Bold size={13} /></ToolBtn>
+      <ToolBtn title="Italic" onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")}><Italic size={13} /></ToolBtn>
+      <ToolBtn title="Underline" onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")}><UnderlineIcon size={13} /></ToolBtn>
+      <ToolBtn title="Strikethrough" onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")}><Strikethrough size={13} /></ToolBtn>
+      <ToolBtn title="Inline code" onClick={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")}><Code size={13} /></ToolBtn>
       <Divider />
-
-      {/* Alignment */}
-      <ToolBtn title="Align left" onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })}>
-        <AlignLeft size={13} />
-      </ToolBtn>
-      <ToolBtn title="Align center" onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })}>
-        <AlignCenter size={13} />
-      </ToolBtn>
-      <ToolBtn title="Align right" onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })}>
-        <AlignRight size={13} />
-      </ToolBtn>
-
+      <ToolBtn title="Align left" onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })}><AlignLeft size={13} /></ToolBtn>
+      <ToolBtn title="Align center" onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })}><AlignCenter size={13} /></ToolBtn>
+      <ToolBtn title="Align right" onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })}><AlignRight size={13} /></ToolBtn>
       <Divider />
-
-      {/* Lists */}
-      <ToolBtn title="Bullet list" onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")}>
-        <List size={13} />
-      </ToolBtn>
-      <ToolBtn title="Numbered list" onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")}>
-        <ListOrdered size={13} />
-      </ToolBtn>
-      <ToolBtn title="Task list" onClick={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive("taskList")}>
-        <ListTodo size={13} />
-      </ToolBtn>
-
+      <ToolBtn title="Bullet list" onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")}><List size={13} /></ToolBtn>
+      <ToolBtn title="Numbered list" onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")}><ListOrdered size={13} /></ToolBtn>
+      <ToolBtn title="Task list" onClick={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive("taskList")}><ListTodo size={13} /></ToolBtn>
       <Divider />
-
-      {/* Block */}
-      <ToolBtn title="Blockquote" onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")}>
-        <Quote size={13} />
-      </ToolBtn>
-
+      <ToolBtn title="Blockquote" onClick={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")}><Quote size={13} /></ToolBtn>
       <Divider />
-
-      {/* Link & Image */}
-      <ToolBtn title="Link" onClick={setLink} active={editor.isActive("link")}>
-        <Link2 size={13} />
-      </ToolBtn>
-      <ToolBtn title="Insert image" onClick={onImageInsert}>
-        <ImageIcon size={13} />
-      </ToolBtn>
+      <ToolBtn title="Link" onClick={setLink} active={editor.isActive("link")}><Link2 size={13} /></ToolBtn>
+      <ToolBtn title="Insert image" onClick={onImageInsert}><ImageIcon size={13} /></ToolBtn>
     </div>
   );
 }
 
-/* ─── RichTextEditor ─────────────────────────────────────── */
+/* ── RichTextEditor ──────────────────────────────────────────── */
+
 interface RichTextEditorProps {
   placeholder?: string;
   onSubmit?: (html: string) => void;
@@ -202,7 +141,6 @@ export function RichTextEditor({
 
   const [hasContent, setHasContent] = React.useState(false);
 
-  // Track content changes to update button state reactively
   React.useEffect(() => {
     if (!editor) return;
     const update = () => {
@@ -231,16 +169,6 @@ export function RichTextEditor({
     reader.readAsDataURL(file);
   };
 
-  const handleImageUrl = () => {
-    const url = window.prompt("Image URL:");
-    if (url) editor?.chain().focus().setImage({ src: url }).run();
-  };
-
-  const handleImageInsert = () => {
-    fileInputRef.current?.click();
-  };
-
-  // Paste image from clipboard
   React.useEffect(() => {
     if (!editor) return;
     const handler = (e: ClipboardEvent) => {
@@ -255,74 +183,68 @@ export function RichTextEditor({
     };
     document.addEventListener("paste", handler);
     return () => document.removeEventListener("paste", handler);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor]);
 
   if (!editor) return null;
 
   return (
     <>
-    {lightbox && <Lightbox src={lightbox.src} alt={lightbox.alt} onClose={closeLightbox} />}
-    <div className={cn("rounded-xl border bg-background overflow-hidden", className)}>
-      <Toolbar editor={editor} onImageInsert={handleImageInsert} />
+      {lightbox && <Lightbox src={lightbox.src} alt={lightbox.alt} onClose={closeLightbox} />}
+      <div className={cn("rounded-xl border bg-background overflow-hidden", className)}>
+        <Toolbar editor={editor} onImageInsert={() => fileInputRef.current?.click()} />
 
-      {/* Hidden file input for image upload */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*,.svg,image/svg+xml"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleImageFile(file);
-          e.target.value = "";
-        }}
-      />
-
-      {/* Editor area — images inside are clickable to open lightbox */}
-      <div
-        ref={editorWrapRef}
-        className="[&_img]:cursor-zoom-in [&_img]:rounded-lg [&_img]:max-h-64 [&_img]:max-w-full [&_img]:object-contain [&_img]:my-2 [&_img]:hover:opacity-80 [&_img]:transition-opacity [&_img]:border [&_img]:border-border [&_img]:shadow-sm"
-      >
-        <EditorContent
-          editor={editor}
-          style={{ minHeight }}
-          className="cursor-text"
-          onClick={() => editor.commands.focus()}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,.svg,image/svg+xml"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleImageFile(file);
+            e.target.value = "";
+          }}
         />
-      </div>
 
-      {/* Footer actions */}
-      <div className="flex items-center justify-between px-3 py-2 border-t bg-muted/20">
-        <p className="text-xs text-muted-foreground">
-          Supports <strong>Markdown</strong> shortcuts · images paste supported
-        </p>
-        <div className="flex items-center gap-2">
-          {onCancel && (
+        <div
+          ref={editorWrapRef}
+          className="[&_img]:cursor-zoom-in [&_img]:rounded-lg [&_img]:max-h-64 [&_img]:max-w-full [&_img]:object-contain [&_img]:my-2 [&_img]:hover:opacity-80 [&_img]:transition-opacity [&_img]:border [&_img]:border-border [&_img]:shadow-sm"
+        >
+          <EditorContent
+            editor={editor}
+            style={{ minHeight }}
+            className="cursor-text"
+            onClick={() => editor.commands.focus()}
+          />
+        </div>
+
+        <div className="flex items-center justify-between px-3 py-2 border-t bg-muted/20">
+          <p className="text-xs text-muted-foreground">
+            Supports <strong>Markdown</strong> · paste images
+          </p>
+          <div className="flex items-center gap-2">
+            {onCancel && (
+              <button type="button" onClick={onCancel}
+                className="px-3 py-1.5 text-sm text-muted-foreground rounded-lg hover:bg-muted transition-colors">
+                Cancel
+              </button>
+            )}
             <button
               type="button"
-              onClick={onCancel}
-              className="px-3 py-1.5 text-sm text-muted-foreground rounded-lg hover:bg-muted transition-colors"
+              onClick={handleSubmit}
+              disabled={!hasContent}
+              className={cn(
+                "px-3.5 py-1.5 text-sm font-medium rounded-lg transition-colors",
+                hasContent
+                  ? "bg-primary text-primary-foreground hover:opacity-90 cursor-pointer"
+                  : "bg-muted text-muted-foreground cursor-not-allowed",
+              )}
             >
-              Cancel
+              {submitLabel}
             </button>
-          )}
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!hasContent}
-            className={cn(
-              "px-3.5 py-1.5 text-sm font-medium rounded-lg transition-colors",
-              hasContent
-                ? "bg-primary text-primary-foreground hover:opacity-90 cursor-pointer"
-                : "bg-muted text-muted-foreground cursor-not-allowed",
-            )}
-          >
-            {submitLabel}
-          </button>
+          </div>
         </div>
       </div>
-    </div>
     </>
   );
 }

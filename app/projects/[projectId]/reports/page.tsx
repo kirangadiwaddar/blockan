@@ -114,7 +114,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
   const { projects, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allCtxIssues, loading: issuesLoading } = useIssues();
 
-  const project = projectBySlug(projectId) ?? projects[0];
+  const project = projectBySlug(projectId);
   const sprints = sprintsForProject(project?.id ?? projectId);
   const issues  = allCtxIssues.filter((i) => i.projectId === project?.id);
 
@@ -477,7 +477,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
                     <div key={member.id} className="flex items-start gap-3 p-3.5 rounded-xl border bg-card">
                       <Avatar className="size-7">
                         <AvatarImage src={member.avatar} alt={member.name} />
-                        <AvatarFallback>{member.initials}</AvatarFallback>
+                        <AvatarFallback colorSeed={member.id}>{member.initials}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col gap-2 flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">

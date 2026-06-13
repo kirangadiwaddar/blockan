@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
-import { signIn, signInWithOAuth } from "@/lib/supabase/auth-actions";
+import { useRouter, useSearchParams } from "next/navigation";
+import { signInWithOAuth } from "@/lib/supabase/auth-actions";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";
@@ -21,15 +22,30 @@ const LoginForm = () => {
   const [isPending, startTransition] = useTransition();
   const [isOAuthPending, setIsOAuthPending] = useState<"google" | "github" | null>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const urlError = searchParams.get("error");
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
     startTransition(async () => {
-      const result = await signIn(formData);
-      if (result?.error) setError(result.error);
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) { setError(signInError.message); return; }
+
+      // Check MFA requirement
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const factorId = factors?.totp?.[0]?.id ?? "";
+        router.push(`/two-factor-authentication?factorId=${factorId}`);
+        return;
+      }
+
+      router.push("/dashboard");
     });
   };
 

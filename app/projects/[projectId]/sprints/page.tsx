@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useProjects } from "@/lib/projects-context";
+import { useProjects, useProjectRole, canEditProject, canManageSprints } from "@/lib/projects-context";
 import { useIssues } from "@/lib/issues-context";
 import { Issue, Sprint } from "@/lib/types";
 import AppSidebar from "@/components/shadcn-space/blocks/dashboard/app-sidebar";
@@ -101,11 +101,13 @@ function SprintCard({
   issues,
   onIssueClick,
   onStatusChange,
+  sprintAdmin,
 }: {
   sprint: Sprint;
   issues: Issue[];
   onIssueClick: (issue: Issue) => void;
   onStatusChange: (id: string, status: Sprint["status"]) => void;
+  sprintAdmin?: boolean;
 }) {
   const [open, setOpen] = useState(sprint.status === "active");
   const done = issues.filter((i) => i.status === "Completed").length;
@@ -139,37 +141,39 @@ function SprintCard({
               {pts > 0 && (
                 <span className="text-xs text-muted-foreground">{pts} pts</span>
               )}
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  className="flex items-center justify-center size-7 rounded-md hover:bg-accent transition-colors cursor-pointer"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreHorizontal size={14} />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {sprint.status === "planned" && (
-                    <DropdownMenuItem
-                      className="cursor-pointer"
-                      onClick={() => onStatusChange(sprint.id, "active")}
-                    >
-                      <Play size={13} /> Start sprint
-                    </DropdownMenuItem>
-                  )}
-                  {sprint.status === "active" && (
-                    <DropdownMenuItem
-                      className="cursor-pointer"
-                      onClick={() => onStatusChange(sprint.id, "completed")}
-                    >
-                      <CheckCheck size={13} /> Complete sprint
-                    </DropdownMenuItem>
-                  )}
-                  {sprint.status === "completed" && (
-                    <DropdownMenuItem className="cursor-pointer text-muted-foreground" disabled>
-                      <Archive size={13} /> Archived
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {sprintAdmin && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    className="flex items-center justify-center size-7 rounded-md hover:bg-accent transition-colors cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal size={14} />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {sprint.status === "planned" && (
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => onStatusChange(sprint.id, "active")}
+                      >
+                        <Play size={13} /> Start sprint
+                      </DropdownMenuItem>
+                    )}
+                    {sprint.status === "active" && (
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => onStatusChange(sprint.id, "completed")}
+                      >
+                        <CheckCheck size={13} /> Complete sprint
+                      </DropdownMenuItem>
+                    )}
+                    {sprint.status === "completed" && (
+                      <DropdownMenuItem className="text-muted-foreground opacity-60" disabled>
+                        <Archive size={13} /> Sprint completed
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </CardAction>
         </CardHeader>
@@ -266,7 +270,7 @@ function SprintCard({
                             {issue.assignees.slice(0, 3).map((a) => (
                               <Avatar key={a.id} className="size-7 ring-2 ring-background dark:ring-muted">
                                 <AvatarImage src={a.avatar} alt={a.name} />
-                                <AvatarFallback>{a.initials}</AvatarFallback>
+                                <AvatarFallback colorSeed={a.id}>{a.initials}</AvatarFallback>
                               </Avatar>
                             ))}
                             {issue.assignees.length > 3 && (
@@ -368,9 +372,12 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
   const { projects, sprintsForProject, addSprint: ctxAddSprint, updateSprintStatus: ctxUpdateSprintStatus, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allCtxIssues, updateIssue: ctxUpdateIssue, loading: issuesLoading } = useIssues();
 
-  const project   = projectBySlug(projectId) ?? projects[0];
+  const project   = projectBySlug(projectId);
   const sprintList = sprintsForProject(project?.id ?? projectId);
   const issueList  = allCtxIssues.filter((i) => i.projectId === project?.id);
+  const role        = useProjectRole(projectId);
+  const readOnly    = !canEditProject(role);
+  const sprintAdmin = canManageSprints(role);
 
   const [detailIssue, setDetailIssue] = useState<Issue | null>(null);
   const [detailOpen, setDetailOpen]   = useState(false);
@@ -474,6 +481,7 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
               issues={issueList.filter((i) => i.sprintId === activeSprint.id)}
               onIssueClick={openDetail}
               onStatusChange={updateSprintStatus}
+              sprintAdmin={sprintAdmin}
             />
           </div>
         )}
@@ -489,6 +497,7 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
                 issues={issueList.filter((i) => i.sprintId === s.id)}
                 onIssueClick={openDetail}
                 onStatusChange={updateSprintStatus}
+                sprintAdmin={sprintAdmin}
               />
             ))}
           </div>
@@ -503,8 +512,8 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
           />
         )}
 
-        {/* ── Create sprint ── */}
-        <CreateSprintCard projectId={project.id} onCreated={addSprint} />
+        {/* ── Create sprint — owner/admin only ── */}
+        {sprintAdmin && <CreateSprintCard projectId={project.id} onCreated={addSprint} />}
 
         {/* ── Completed sprints ── */}
         {completedSprints.length > 0 && (
@@ -518,6 +527,7 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
                 issues={issueList.filter((i) => i.sprintId === s.id)}
                 onIssueClick={openDetail}
                 onStatusChange={updateSprintStatus}
+                sprintAdmin={sprintAdmin}
               />
             ))}
           </div>
@@ -527,6 +537,7 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
       <IssueDetailSheet
         issue={detailIssue}
         open={detailOpen}
+        readOnly={readOnly}
         onOpenChange={setDetailOpen}
         onUpdate={updateIssue}
       />

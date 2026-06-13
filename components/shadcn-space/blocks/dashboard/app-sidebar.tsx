@@ -87,7 +87,7 @@ function ProjectSwitcher({
         </div>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="start" sideOffset={6} className="w-52 p-1.5 rounded-xl">
+      <DropdownMenuContent align="start" sideOffset={6} className="w-[calc(100vw-2rem)] md:w-52 p-1.5 rounded-xl" positionerClassName="isolate z-[10000] outline-none">
         {/* Search */}
         <div className="flex items-center gap-1.5 px-2 py-1 mb-1 rounded-md border border-input bg-muted/40">
           <Search size={11} className="text-muted-foreground shrink-0" />
@@ -133,7 +133,7 @@ function ProjectSwitcher({
 /* ── Sidebar user profile dropdown ───────────────────────── */
 function SidebarUserMenu() {
   const router = useRouter();
-  const { displayName, email, avatarUrl, initials } = useUser();
+  const { user, displayName, email, avatarUrl, initials } = useUser();
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -156,12 +156,12 @@ function SidebarUserMenu() {
         onCancel={() => setConfirmOpen(false)}
       />
 
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger className="w-full focus:outline-none">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted transition-colors cursor-pointer w-full">
             <Avatar className="size-8 shrink-0">
               <AvatarImage src={avatarUrl} alt={displayName} />
-              <AvatarFallback className="text-xs">{initials || "U"}</AvatarFallback>
+              <AvatarFallback className="text-xs" colorSeed={user?.id}>{initials || "U"}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0 flex-1 text-left">
               <span className="text-sm font-medium truncate leading-tight">{displayName || "Loading…"}</span>
@@ -175,7 +175,8 @@ function SidebarUserMenu() {
           side="top"
           align="start"
           sideOffset={18}
-          className="w-56 rounded-xl p-1.5 z-99999"
+          className="w-[calc(100vw-2rem)] md:w-56 rounded-xl p-1.5"
+          positionerClassName="isolate z-[10000] outline-none"
         >
           <div className="px-2 py-1.5 mb-1">
             <p className="text-xs font-semibold truncate">{displayName}</p>
@@ -293,7 +294,7 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
       )}
 
       {/* Mobile drawer */}
-      <div className={`fixed inset-y-0 left-0 z-9999 w-64 bg-background border-r transform transition-transform duration-200 ease-in-out md:hidden ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <div onClick={(e) => e.stopPropagation()} className={`fixed inset-y-0 left-0 z-9999 w-64 bg-background border-r transform transition-transform duration-200 ease-in-out md:hidden ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center justify-between px-4 py-4 border-b">
           <Logo />
           <button onClick={() => setMobileOpen(false)} className="p-1 rounded-md hover:bg-muted cursor-pointer">
