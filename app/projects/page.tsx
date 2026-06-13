@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/shadcn-space/blocks/dashboard/app-sidebar";
 import { ProjectCard } from "@/components/projects/project-card";
 import { CreateProjectSheet } from "@/components/projects/create-project-sheet";
@@ -18,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const { projects, addProject, deleteProject, loading } = useProjects();
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -105,7 +107,7 @@ export default function ProjectsPage() {
       <CreateProjectSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        onCreated={async (p) => { await addProject(p); window.location.href = `/projects/${p.key.toLowerCase()}/board`; }}
+        onCreated={async (p) => { await addProject(p); router.push(`/projects/${p.key.toLowerCase()}/board`); }}
       />
 
       <ConfirmDialog

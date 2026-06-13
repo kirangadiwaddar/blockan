@@ -75,7 +75,30 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
       }
     });
   };
-  const [columns, setColumns] = useState<BoardColumn[]>(DEFAULT_COLUMNS);
+  const storageKey = projectId ? `board-columns-${projectId}` : "board-columns";
+  const [columns, setColumns] = useState<BoardColumn[]>(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed: BoardColumn[] = JSON.parse(saved);
+        // Merge: keep saved order/visibility, ensure all DEFAULT_COLUMNS builtins exist
+        const builtinIds = new Set(DEFAULT_COLUMNS.map((c) => c.id));
+        const savedIds = new Set(parsed.map((c) => c.id));
+        const missing = DEFAULT_COLUMNS.filter((c) => !savedIds.has(c.id));
+        return [...missing, ...parsed];
+      }
+    } catch {}
+    return DEFAULT_COLUMNS;
+  });
+
+  const persistColumns = (cols: BoardColumn[]) => {
+    try { localStorage.setItem(storageKey, JSON.stringify(cols)); } catch {}
+  };
+
+  const handleSetColumns = (cols: BoardColumn[]) => {
+    setColumns(cols);
+    persistColumns(cols);
+  };
   const [activeIssue, setActiveIssue] = useState<Issue | null>(null);
   const [manageOpen, setManageOpen] = useState(false);
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null);
@@ -377,7 +400,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
         open={manageOpen}
         columns={columns}
         onOpenChange={setManageOpen}
-        onSave={setColumns}
+        onSave={handleSetColumns}
       />
 
       <CreateIssueSheet

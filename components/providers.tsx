@@ -5,6 +5,7 @@ import { IssuesProvider } from "@/lib/issues-context";
 import { CommentsProvider } from "@/lib/comments-context";
 import { UserProvider } from "@/lib/supabase/user-context";
 import { ProjectsProvider } from "@/lib/projects-context";
+import { RefreshNeededProvider } from "@/lib/refresh-context";
 
 type Theme = "light" | "dark";
 
@@ -84,13 +85,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeCtx.Provider value={{ theme, toggle, accentId, setAccent }}>
-      <UserProvider>
-        <ProjectsProvider>
-          <IssuesProvider>
-            <CommentsProvider>{children}</CommentsProvider>
-          </IssuesProvider>
-        </ProjectsProvider>
-      </UserProvider>
+      <RefreshNeededProvider>
+        <UserProvider>
+          <ProjectsProvider>
+            <IssuesProvider>
+              <CommentsProvider>{children}</CommentsProvider>
+            </IssuesProvider>
+          </ProjectsProvider>
+        </UserProvider>
+      </RefreshNeededProvider>
     </ThemeCtx.Provider>
   );
 }

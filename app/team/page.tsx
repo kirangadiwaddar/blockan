@@ -25,8 +25,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { fetchPendingInvites, type PendingInvite } from "@/lib/supabase/db";
-import { resendInvite, cancelPendingInviteAction, generateInviteLink } from "@/lib/supabase/invite-actions";
+import { resendInvite, cancelPendingInviteAction, generateInviteLink, fetchPendingInvitesAdmin } from "@/lib/supabase/invite-actions";
 import { cn } from "@/lib/utils";
 
 const ROLES = ["Owner", "Admin", "Member", "Viewer", "Guest"] as const;
@@ -70,11 +69,12 @@ export default function TeamPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [profileMember, setProfileMember] = useState<TeamMember | null>(null);
   const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
-  const { projects, removeMember, updateMemberRole } = useProjects();
+  const { projects, removeMember, updateMemberRole, refreshProjects } = useProjects();
   const { issues } = useIssues();
   const { user } = useUser();
 
   // Pending invites state
+  type PendingInvite = Awaited<ReturnType<typeof fetchPendingInvitesAdmin>>[number];
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [pendingLoading, setPendingLoading] = useState(true);
   const [resendingId, setResendingId] = useState<string | null>(null);
@@ -83,7 +83,7 @@ export default function TeamPage() {
 
   const loadPending = useCallback(async () => {
     setPendingLoading(true);
-    const data = await fetchPendingInvites();
+    const data = await fetchPendingInvitesAdmin();
     setPendingInvites(data);
     setPendingLoading(false);
   }, []);
@@ -153,6 +153,7 @@ export default function TeamPage() {
   const handleRemove = async (member: TeamMember) => {
     await Promise.all(member.projectSlugs.map((slug) => removeMember(slug, member.id)));
     setRemoveTarget(null);
+    refreshProjects();
   };
 
   const copyToClipboard = (text: string) => {
@@ -399,7 +400,7 @@ export default function TeamPage() {
                   <TableHead className="ps-4">Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead className="hidden md:table-cell">Invited</TableHead>
-                  <TableHead className="w-24 text-right pr-4">Actions</TableHead>
+                  {canManageRoles && <TableHead className="w-24 text-right pr-4">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -429,40 +430,42 @@ export default function TeamPage() {
                     <TableCell className="hidden md:table-cell py-2.5">
                       <span className="text-xs text-muted-foreground">{formatDate(invite.invitedAt)}</span>
                     </TableCell>
-                    <TableCell className="py-2.5 pr-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="size-6 cursor-pointer"
-                          title="Copy invite link"
-                          onClick={() => handleCopyLink(invite)}
-                        >
-                          {copiedLinkId === invite.id
-                            ? <Check size={12} className="text-green-500" />
-                            : <Copy size={12} />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="size-6 cursor-pointer"
-                          title="Resend invite email"
-                          disabled={resendingId === invite.id}
-                          onClick={() => handleResend(invite)}
-                        >
-                          <RefreshCw size={12} className={resendingId === invite.id ? "animate-spin" : ""} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="size-6 cursor-pointer text-destructive hover:text-destructive"
-                          title="Cancel invite"
-                          onClick={() => setCancelTarget(invite)}
-                        >
-                          <X size={12} />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {canManageRoles && (
+                      <TableCell className="py-2.5 pr-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="size-6 cursor-pointer"
+                            title="Copy invite link"
+                            onClick={() => handleCopyLink(invite)}
+                          >
+                            {copiedLinkId === invite.id
+                              ? <Check size={12} className="text-green-500" />
+                              : <Copy size={12} />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="size-6 cursor-pointer"
+                            title="Resend invite email"
+                            disabled={resendingId === invite.id}
+                            onClick={() => handleResend(invite)}
+                          >
+                            <RefreshCw size={12} className={resendingId === invite.id ? "animate-spin" : ""} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="size-6 cursor-pointer text-destructive hover:text-destructive"
+                            title="Cancel invite"
+                            onClick={() => setCancelTarget(invite)}
+                          >
+                            <X size={12} />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
