@@ -243,7 +243,7 @@ export default function DashboardPage() {
   if (!loading && projects.length === 0) {
     return (
       <AppSidebar>
-        <CreateProjectSheet open={createProjectOpen} onOpenChange={setCreateProjectOpen} onCreated={(p) => addProject(p)} />
+        <CreateProjectSheet open={createProjectOpen} onOpenChange={setCreateProjectOpen} onCreated={async (p) => { await addProject(p); window.location.href = `/projects/${p.key.toLowerCase()}/board`; }} />
         <OnboardingScreen
           displayName={displayName}
           onCreateProject={() => setCreateProjectOpen(true)}
