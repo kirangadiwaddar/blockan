@@ -1,11 +1,60 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useTheme } from "@/components/providers";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ShortcutsDialog } from "@/components/shortcuts-dialog";
-import { SearchIcon, Moon, Sun } from "lucide-react";
+import { SearchIcon, Moon, Sun, Download } from "lucide-react";
 import { CommandPalette } from "@/components/search/command-palette";
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
+declare global {
+  interface Window { __pwaPrompt?: BeforeInstallPromptEvent; }
+}
+
+function InstallButton() {
+  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
+
+    if (window.__pwaPrompt) {
+      setPrompt(window.__pwaPrompt);
+      return;
+    }
+    const handler = (e: Event) => {
+      e.preventDefault();
+      const p = e as BeforeInstallPromptEvent;
+      window.__pwaPrompt = p;
+      setPrompt(p);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  if (!prompt) return null;
+
+  const install = async () => {
+    await prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    if (outcome === "accepted") setPrompt(null);
+  };
+
+  return (
+    <button
+      onClick={install}
+      title="Install Blockan"
+      className="rounded-full p-2 hover:bg-accent transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
+    >
+      <Download className="size-4" />
+    </button>
+  );
+}
 
 function ThemeToggle() {
   const { theme, toggle } = useTheme();
@@ -43,6 +92,7 @@ export function SiteHeader() {
           </button>
         </div>
         <div className="flex items-center gap-1">
+          <InstallButton />
           <ThemeToggle />
           <NotificationBell />
         </div>
