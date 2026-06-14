@@ -439,15 +439,15 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
       <div className="flex flex-col gap-5 p-6 w-full">
 
         {/* ── Header ── */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className={`avatar-orb ${project.color} size-7 rounded-full`} />
-            <h1 className="text-xl font-semibold">{project.name} — Sprints</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`avatar-orb ${project.color} size-7 rounded-full shrink-0`} />
+            <h1 className="text-xl font-semibold truncate">{project.name} — Sprints</h1>
           </div>
           <div className="flex items-center gap-2">
             <Link
               href={`/projects/${project.id}/board`}
-              className={buttonVariants({ variant: "outline", className: "cursor-pointer" })}
+              className={buttonVariants({ variant: "outline", className: "cursor-pointer flex-1 sm:flex-none justify-center" })}
             >
               <Grid3x2 size={14} /> Board view
             </Link>

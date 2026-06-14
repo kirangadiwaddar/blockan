@@ -231,13 +231,13 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
       <div className="flex flex-col gap-6 p-6 w-full">
 
         {/* ── Header ── */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className={`avatar-orb ${project.color} size-7 rounded-full`} />
-            <h1 className="text-xl font-semibold">{project.name} — Reports</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`avatar-orb ${project.color} size-7 rounded-full shrink-0`} />
+            <h1 className="text-xl font-semibold truncate">{project.name} — Reports</h1>
           </div>
           {overdue.length > 0 && (
-            <Badge className="gap-1.5 bg-red-500/10 text-red-500 font-normal border-red-200 dark:border-red-900">
+            <Badge className="gap-1.5 bg-red-500/10 text-red-500 font-normal border-red-200 dark:border-red-900 self-start sm:self-auto">
               <AlertTriangle size={11} /> {overdue.length} overdue issue{overdue.length !== 1 ? "s" : ""}
             </Badge>
           )}
