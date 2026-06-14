@@ -63,7 +63,7 @@ function InstallModal({ onClose }: { onClose: () => void }) {
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-semibold leading-tight">Install Blockan</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Faster, offline-ready desktop app</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Fast, focused desktop app</p>
           </div>
         </div>
 

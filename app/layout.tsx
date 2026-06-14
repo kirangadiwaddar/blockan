@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { PWARegister } from "@/components/pwa-register";
 import { PWAInstallBanner } from "@/components/pwa-install-banner";
+import { OfflineBanner } from "@/components/offline-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -83,7 +84,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-[100dvh] flex flex-col"><Providers>{children}</Providers><PWARegister /><PWAInstallBanner /></body>
+      <body className="min-h-[100dvh] flex flex-col"><Providers>{children}</Providers><PWARegister /><PWAInstallBanner /><OfflineBanner /></body>
     </html>
   );
 }
