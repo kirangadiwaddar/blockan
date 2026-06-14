@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Download } from "lucide-react";
+import { X, Download, Share } from "lucide-react";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -14,17 +14,19 @@ export function PWAInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
-    // Don't show if already dismissed this session
+    // Already installed — never show
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    // Dismissed this session
     if (sessionStorage.getItem("pwa-banner-dismissed")) return;
 
-    // Don't show if already installed (standalone mode)
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
-
-    // iOS detection
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
+    // iOS / iPadOS Safari (including Mac Safari with touch)
+    const ua = navigator.userAgent;
+    const ios =
+      /iphone|ipad|ipod/i.test(ua) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     if (ios) {
-      // Only show on mobile Safari (not in-app browser)
-      const isSafari = /safari/i.test(navigator.userAgent) && !/crios|fxios|opios/i.test(navigator.userAgent);
+      const isSafari =
+        /safari/i.test(ua) && !/crios|fxios|opios|chrome/i.test(ua);
       if (isSafari) {
         setIsIOS(true);
         setShow(true);
@@ -32,7 +34,7 @@ export function PWAInstallBanner() {
       return;
     }
 
-    // Android / Chrome — listen for beforeinstallprompt
+    // Chrome / Edge / Samsung Browser — capture install prompt
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -60,43 +62,80 @@ export function PWAInstallBanner() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999] sm:hidden">
-      <div className="mx-3 mb-3 bg-popover border border-border rounded-2xl shadow-2xl px-4 py-3.5 flex items-center gap-3">
-        {/* App icon */}
-        <div className="size-10 rounded-xl bg-white border border-border flex items-center justify-center shrink-0 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon-192.png" alt="Blockan" className="size-8 object-contain" />
-        </div>
+    <>
+      {/* ── Mobile / Tablet — full-width bottom bar ── */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[9999] md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="mx-3 mb-3 bg-popover border border-border rounded-2xl shadow-2xl px-4 py-3.5 flex items-center gap-3">
+          <div className="size-10 rounded-xl bg-white border border-border flex items-center justify-center shrink-0 overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon-192.png" alt="Blockan" className="size-8 object-contain" />
+          </div>
 
-        {/* Text */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight">Add Blockan to Home Screen</p>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-tight">
-            {isIOS
-              ? 'Tap Share → "Add to Home Screen"'
-              : "Install for a better experience"}
-          </p>
-        </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold leading-tight">Install Blockan</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-tight">
+              {isIOS ? 'Tap Share → "Add to Home Screen"' : "Install for the best experience"}
+            </p>
+          </div>
 
-        {/* Install button (Android only) */}
-        {!isIOS && (
+          {isIOS ? (
+            <Share size={18} className="shrink-0 text-muted-foreground" />
+          ) : (
+            <button
+              onClick={install}
+              className="shrink-0 flex items-center gap-1.5 bg-foreground text-background text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer"
+            >
+              <Download size={12} />
+              Install
+            </button>
+          )}
+
           <button
-            onClick={install}
-            className="shrink-0 flex items-center gap-1.5 bg-foreground text-background text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer"
+            onClick={dismiss}
+            className="shrink-0 size-6 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
-            <Download size={12} />
-            Install
+            <X size={14} />
           </button>
-        )}
-
-        {/* Dismiss */}
-        <button
-          onClick={dismiss}
-          className="shrink-0 size-6 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        >
-          <X size={14} />
-        </button>
+        </div>
       </div>
-    </div>
+
+      {/* ── Desktop — bottom-right toast ── */}
+      <div className="fixed bottom-6 right-6 z-[9999] hidden md:block w-80">
+        <div className="bg-popover border border-border rounded-2xl shadow-2xl p-4 flex items-start gap-3">
+          <div className="size-12 rounded-xl bg-white border border-border flex items-center justify-center shrink-0 overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon-192.png" alt="Blockan" className="size-10 object-contain" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold leading-tight">Install Blockan</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+              {isIOS
+                ? 'In Safari: File → "Add to Dock" to install'
+                : "Get the full app experience — works offline, opens instantly"}
+            </p>
+            {!isIOS && (
+              <button
+                onClick={install}
+                className="mt-2.5 w-full flex items-center justify-center gap-1.5 bg-foreground text-background text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                <Download size={13} />
+                Install app
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={dismiss}
+            className="shrink-0 size-6 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors cursor-pointer mt-0.5"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

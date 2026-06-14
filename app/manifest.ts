@@ -9,9 +9,11 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",
+    display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
     background_color: "#ffffff",
     theme_color: "#0f172a",
-    orientation: "portrait-primary",
+    orientation: "any",
+    categories: ["productivity", "business", "utilities"],
     icons: [
       {
         src: "/icon-192.png",
@@ -39,21 +41,9 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
     shortcuts: [
-      {
-        name: "Dashboard",
-        url: "/dashboard",
-        description: "View your dashboard",
-      },
-      {
-        name: "Projects",
-        url: "/projects",
-        description: "View all projects",
-      },
-      {
-        name: "Team",
-        url: "/team",
-        description: "Manage your team",
-      },
+      { name: "Dashboard", url: "/dashboard", description: "View your dashboard" },
+      { name: "Projects", url: "/projects", description: "View all projects" },
+      { name: "Team", url: "/team", description: "Manage your team" },
     ],
   };
 }
