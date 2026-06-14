@@ -1,84 +1,99 @@
-const CACHE = "blockan-v1";
+const CACHE = "blockan-v2";
 
-const PRECACHE = [
-  "/",
-  "/dashboard",
-  "/projects",
-  "/team",
-  "/settings",
-];
-
-// Install: precache shell routes
+// Install: skip precaching routes that may redirect (auth-gated pages).
+// Just activate immediately — runtime caching handles everything else.
 self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting())
-  );
+  e.waitUntil(self.skipWaiting());
 });
 
-// Activate: delete old caches
+// Activate: claim all clients and delete old caches.
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+      )
+      .then(() => self.clients.claim())
   );
 });
 
-// Fetch: network-first for API/auth, cache-first for static assets, stale-while-revalidate for pages
+// Fetch strategy
 self.addEventListener("fetch", (e) => {
   const { request } = e;
   const url = new URL(request.url);
 
-  // Skip non-GET and cross-origin requests
+  // Only handle GET requests from the same origin
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
-  // Skip Supabase API, auth routes, and Next.js internals
+  // Skip API, auth, RSC, and HMR requests — always go to network
   if (
     url.pathname.startsWith("/api/") ||
     url.pathname.startsWith("/auth/") ||
     url.pathname.startsWith("/_next/webpack-hmr") ||
     url.searchParams.has("_rsc")
-  ) return;
+  )
+    return;
 
-  // Static assets (_next/static): cache-first
+  // Static assets: cache-first (they're content-hashed, safe to cache forever)
   if (url.pathname.startsWith("/_next/static/")) {
     e.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE).then((c) => c.put(request, clone));
-          return res;
-        });
-      })
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((res) => {
+            if (res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE).then((c) => c.put(request, clone));
+            }
+            return res;
+          })
+      )
     );
     return;
   }
 
-  // Page navigations: network-first with cache fallback
+  // Public static files (icons, manifest, etc.): cache-first
+  if (
+    url.pathname.startsWith("/icon") ||
+    url.pathname.startsWith("/apple-icon") ||
+    url.pathname === "/manifest.webmanifest" ||
+    url.pathname.match(/\.(png|jpg|jpeg|svg|ico|webp|woff2?)$/)
+  ) {
+    e.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((res) => {
+            if (res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE).then((c) => c.put(request, clone));
+            }
+            return res;
+          })
+      )
+    );
+    return;
+  }
+
+  // Page navigations: network-first so the user always gets fresh content.
+  // Fall back to cache only when offline.
   if (request.mode === "navigate") {
     e.respondWith(
       fetch(request)
         .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE).then((c) => c.put(request, clone));
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then((c) => c.put(request, clone));
+          }
           return res;
         })
-        .catch(() => caches.match(request).then((cached) => cached ?? caches.match("/dashboard")))
+        .catch(() =>
+          caches
+            .match(request)
+            .then((cached) => cached || caches.match("/dashboard"))
+        )
     );
     return;
   }
-
-  // Everything else: stale-while-revalidate
-  e.respondWith(
-    caches.open(CACHE).then((cache) =>
-      cache.match(request).then((cached) => {
-        const network = fetch(request).then((res) => {
-          cache.put(request, res.clone());
-          return res;
-        });
-        return cached ?? network;
-      })
-    )
-  );
 });

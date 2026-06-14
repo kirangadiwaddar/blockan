@@ -5,6 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Blockan",
     short_name: "Blockan",
     description: "Project tracker and issue management for modern teams",
+    id: "/",
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",
