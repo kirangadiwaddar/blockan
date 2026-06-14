@@ -237,7 +237,7 @@ function SidebarUserMenu() {
         <DropdownMenuContent
           side="top"
           align="start"
-          sideOffset={38}
+          sideOffset={18}
           className="w-[calc(100vw-2rem)] md:w-56 rounded-xl p-1.5"
           positionerClassName="isolate z-[10000] outline-none"
         >
@@ -374,7 +374,7 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
           </div>
           <div className="shrink-0">
             <SidebarInstallCard />
-            <div className="border-t px-3 py-2">
+            <div className="border-t px-3 pt-2 pb-5">
               <SidebarUserMenu />
             </div>
           </div>
@@ -407,7 +407,7 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
           {/* Install card + user profile at bottom */}
           <div className="shrink-0">
             <SidebarInstallCard />
-            <div className="border-t px-3 py-2">
+            <div className="border-t px-3 pt-2 pb-5">
               <SidebarUserMenu />
             </div>
           </div>
