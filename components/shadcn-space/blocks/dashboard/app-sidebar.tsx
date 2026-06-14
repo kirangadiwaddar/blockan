@@ -14,7 +14,7 @@ import {
 import {
   LucideIcon, Grid3x2, ListTree, SquareStack, CalendarDays, BookText,
   FolderRoot, ChartPie, Users, Settings, Menu, X,
-  LogOut, CircleUserRound, ChevronUp, ChevronDown, Check, FolderKanban, Search,
+  LogOut, CircleUserRound, ChevronUp, ChevronDown, Check, FolderKanban, Search, Download,
 } from "lucide-react";
 import { SiteHeader } from "@/components/shadcn-space/blocks/dashboard/site-header";
 import SimpleBar from "simplebar-react";
@@ -127,6 +127,98 @@ function ProjectSwitcher({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/* ── Sidebar install card ────────────────────────────────── */
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+declare global { interface Window { __pwaPrompt?: BeforeInstallPromptEvent; } }
+
+function SidebarInstallCard() {
+  const [visible, setVisible] = useState(false);
+  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  React.useEffect(() => {
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    const dismissed = localStorage.getItem("pwa-sidebar-dismissed");
+    if (dismissed && Date.now() - Number(dismissed) < 30 * 24 * 60 * 60 * 1000) return;
+
+    const ua = navigator.userAgent;
+    const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isIOS) {
+      const isSafari = /safari/i.test(ua) && !/crios|fxios|opios|chrome/i.test(ua);
+      if (isSafari) setVisible(true);
+      return;
+    }
+
+    if (window.__pwaPrompt) { setPrompt(window.__pwaPrompt); setVisible(true); return; }
+    const handler = (e: Event) => {
+      e.preventDefault();
+      const p = e as BeforeInstallPromptEvent;
+      window.__pwaPrompt = p;
+      setPrompt(p);
+      setVisible(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const dismiss = () => {
+    localStorage.setItem("pwa-sidebar-dismissed", String(Date.now()));
+    setVisible(false);
+  };
+
+  const install = async () => {
+    if (!prompt) return;
+    await prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    if (outcome === "accepted") dismiss();
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div className="mx-3 mb-2">
+      <div className="relative rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-3">
+        {/* Dismiss */}
+        <button
+          onClick={dismiss}
+          className="absolute top-2 right-2 size-5 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
+        >
+          <X size={11} />
+        </button>
+
+        {/* Header */}
+        <div className="flex items-center gap-2.5 mb-2.5 pr-4">
+          <div className="size-8 rounded-lg overflow-hidden shrink-0 bg-white border border-border/40 shadow-sm">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon-192.png" alt="Blockan" className="size-full object-contain" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold leading-tight">Get the App</p>
+            <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Faster &amp; works offline</p>
+          </div>
+        </div>
+
+        {/* Install button */}
+        {prompt ? (
+          <button
+            onClick={install}
+            className="w-full flex items-center justify-center gap-1.5 h-7 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+          >
+            <Download size={11} />
+            Install app
+          </button>
+        ) : (
+          <p className="text-[10px] text-muted-foreground leading-snug">
+            Tap <span className="font-medium">Share → Add to Home Screen</span> to install.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -309,8 +401,11 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <SidebarNav projects={typedProjects} selectedSlug={selectedSlug} onSelect={handleSelect} />
           </div>
-          <div className="px-3 py-3 border-t shrink-0">
-            <SidebarUserMenu />
+          <div className="border-t shrink-0 pt-2">
+            <SidebarInstallCard />
+            <div className="px-3 pb-3">
+              <SidebarUserMenu />
+            </div>
           </div>
         </div>
       </div>
@@ -338,9 +433,12 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
             </SimpleBar>
           </SidebarContent>
 
-          {/* User profile at bottom */}
-          <div className="px-3 pb-4 pt-2 border-t shrink-0">
-            <SidebarUserMenu />
+          {/* Install card + user profile at bottom */}
+          <div className="border-t shrink-0 pt-2">
+            <SidebarInstallCard />
+            <div className="px-3 pb-4">
+              <SidebarUserMenu />
+            </div>
           </div>
         </div>
       </Sidebar>

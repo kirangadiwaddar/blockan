@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { PWARegister } from "@/components/pwa-register";
-import { PWAInstallBanner } from "@/components/pwa-install-banner";
 import { OfflineBanner } from "@/components/offline-banner";
 import { InlineScript } from "@/components/inline-script";
 
@@ -58,7 +57,6 @@ export default function RootLayout({
       <body className="min-h-[100dvh] flex flex-col">
         <Providers>{children}</Providers>
         <PWARegister />
-        <PWAInstallBanner />
         <OfflineBanner />
       </body>
     </html>
