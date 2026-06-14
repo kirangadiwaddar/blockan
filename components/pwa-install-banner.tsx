@@ -22,8 +22,9 @@ export function PWAInstallBanner() {
   useEffect(() => {
     // Already running as installed PWA — never show
     if (window.matchMedia("(display-mode: standalone)").matches) return;
-    // User dismissed this session
-    if (sessionStorage.getItem("pwa-banner-dismissed")) return;
+    // User dismissed within the last 30 days
+    const dismissed = localStorage.getItem("pwa-banner-dismissed");
+    if (dismissed && Date.now() - Number(dismissed) < 30 * 24 * 60 * 60 * 1000) return;
 
     // iOS / iPadOS Safari
     const ua = navigator.userAgent;
@@ -59,7 +60,7 @@ export function PWAInstallBanner() {
   }, []);
 
   const dismiss = () => {
-    sessionStorage.setItem("pwa-banner-dismissed", "1");
+    localStorage.setItem("pwa-banner-dismissed", String(Date.now()));
     setShow(false);
   };
 
@@ -68,7 +69,7 @@ export function PWAInstallBanner() {
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === "accepted") {
-      sessionStorage.setItem("pwa-banner-dismissed", "1");
+      localStorage.setItem("pwa-banner-dismissed", String(Date.now()));
       setShow(false);
     }
   };
