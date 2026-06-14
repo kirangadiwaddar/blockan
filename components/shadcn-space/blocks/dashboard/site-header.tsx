@@ -55,46 +55,46 @@ function InstallModal({ onClose }: { onClose: () => void }) {
         className="bg-popover rounded-3xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden border border-border/50"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header band */}
-        <div className="bg-gradient-to-br from-muted/60 to-muted/20 flex flex-col items-center pt-8 pb-6 px-8 gap-3">
-          <div className="size-[72px] rounded-2xl shadow-lg overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-3 p-4 border-b border-border/50">
+          <div className="size-10 rounded-xl overflow-hidden shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icon-192.png" alt="Blockan" className="size-full object-contain" />
           </div>
-          <div className="text-center">
-            <h2 className="text-base font-semibold tracking-tight">Install Blockan</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Project management, offline-ready</p>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold leading-tight">Install Blockan</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Faster, offline-ready desktop app</p>
           </div>
         </div>
 
         {/* Features */}
-        <div className="px-6 py-4 flex flex-col gap-2.5">
+        <div className="px-4 py-3 flex flex-col gap-1.5">
           {[
             { icon: "⚡", label: "Launches instantly from your taskbar" },
-            { icon: "📶", label: "Works offline — no internet needed" },
-            { icon: "🖥️", label: "Dedicated window, no browser tabs" },
+            { icon: "📶", label: "Works offline" },
+            { icon: "🖥️", label: "No browser tabs or URL bar" },
           ].map(({ icon, label }) => (
-            <div key={label} className="flex items-center gap-3">
-              <span className="text-base leading-none">{icon}</span>
-              <span className="text-sm text-muted-foreground">{label}</span>
+            <div key={label} className="flex items-center gap-2">
+              <span className="text-xs leading-none">{icon}</span>
+              <span className="text-xs text-muted-foreground">{label}</span>
             </div>
           ))}
         </div>
 
         {/* Actions */}
-        <div className="px-6 pb-6 flex flex-col gap-2">
-          <button
-            onClick={install}
-            className="w-full flex items-center justify-center gap-2 h-10 bg-foreground text-background rounded-xl text-sm font-semibold hover:opacity-85 transition-opacity cursor-pointer"
-          >
-            <Download size={14} />
-            Install app
-          </button>
+        <div className="px-4 pb-4 flex gap-2">
           <button
             onClick={onClose}
-            className="w-full h-9 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+            className="flex-1 h-8 rounded-lg text-xs text-muted-foreground hover:bg-muted/50 transition-colors cursor-pointer border border-border"
           >
             Not now
+          </button>
+          <button
+            onClick={install}
+            className="flex-1 flex items-center justify-center gap-1.5 h-8 bg-foreground text-background rounded-lg text-xs font-semibold hover:opacity-85 transition-opacity cursor-pointer"
+          >
+            <Download size={12} />
+            Install
           </button>
         </div>
       </div>
