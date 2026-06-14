@@ -63,8 +63,9 @@ export function PWAInstallBanner() {
     <div className="fixed bottom-0 left-0 right-0 z-[9999] sm:hidden">
       <div className="mx-3 mb-3 bg-popover border border-border rounded-2xl shadow-2xl px-4 py-3.5 flex items-center gap-3">
         {/* App icon */}
-        <div className="size-10 rounded-xl bg-foreground flex items-center justify-center shrink-0">
-          <span className="text-background font-bold text-lg leading-none">B</span>
+        <div className="size-10 rounded-xl bg-white border border-border flex items-center justify-center shrink-0 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icon-192.png" alt="Blockan" className="size-8 object-contain" />
         </div>
 
         {/* Text */}

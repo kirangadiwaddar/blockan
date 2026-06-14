@@ -23,6 +23,7 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Blockan",
+    startupImage: "/icon-512.png",
   },
   formatDetection: { telephone: false },
   other: {

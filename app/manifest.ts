@@ -6,20 +6,17 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Blockan",
     description: "Project tracker and issue management for modern teams",
     start_url: "/dashboard",
+    scope: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#0f172a",
     orientation: "portrait-primary",
     icons: [
       {
-        src: "/icon.png",
-        sizes: "32x32",
+        src: "/icon-192.png",
+        sizes: "192x192",
         type: "image/png",
-      },
-      {
-        src: "/apple-icon.png",
-        sizes: "180x180",
-        type: "image/png",
+        purpose: "any",
       },
       {
         src: "/icon-192.png",
@@ -32,6 +29,12 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
+      },
+      {
+        src: "/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
       },
     ],
     shortcuts: [
