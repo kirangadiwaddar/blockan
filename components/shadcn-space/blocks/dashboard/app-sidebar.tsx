@@ -181,8 +181,8 @@ function SidebarInstallCard() {
   if (!visible) return null;
 
   return (
-    <div className="mx-3 mb-2">
-      <div className="relative rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-3">
+    <div className="px-3 pb-3 pt-2">
+      <div className="relative rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 px-3 py-2.5">
         {/* Dismiss */}
         <button
           onClick={dismiss}
@@ -192,8 +192,8 @@ function SidebarInstallCard() {
         </button>
 
         {/* Header */}
-        <div className="flex items-center gap-2.5 mb-2.5 pr-4">
-          <div className="size-8 rounded-lg overflow-hidden shrink-0 bg-white border border-border/40 shadow-sm">
+        <div className="flex items-center gap-2 mb-2 pr-4">
+          <div className="size-7 rounded-lg overflow-hidden shrink-0 bg-white border border-border/40 shadow-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icon-192.png" alt="Blockan" className="size-full object-contain" />
           </div>
@@ -207,7 +207,7 @@ function SidebarInstallCard() {
         {prompt ? (
           <button
             onClick={install}
-            className="w-full flex items-center justify-center gap-1.5 h-7 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+            className="w-full flex items-center justify-center gap-1.5 h-7 bg-foreground text-background text-xs font-semibold rounded-lg hover:opacity-85 transition-opacity cursor-pointer"
           >
             <Download size={11} />
             Install app
@@ -401,9 +401,9 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <SidebarNav projects={typedProjects} selectedSlug={selectedSlug} onSelect={handleSelect} />
           </div>
-          <div className="border-t shrink-0 pt-2">
+          <div className="shrink-0">
             <SidebarInstallCard />
-            <div className="px-3 pb-3">
+            <div className="border-t px-3 py-2">
               <SidebarUserMenu />
             </div>
           </div>
@@ -434,9 +434,9 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
           </SidebarContent>
 
           {/* Install card + user profile at bottom */}
-          <div className="border-t shrink-0 pt-2">
+          <div className="shrink-0">
             <SidebarInstallCard />
-            <div className="px-3 pb-4">
+            <div className="border-t px-3 py-2">
               <SidebarUserMenu />
             </div>
           </div>
