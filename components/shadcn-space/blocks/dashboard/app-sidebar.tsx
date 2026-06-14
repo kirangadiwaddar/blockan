@@ -144,21 +144,13 @@ function SidebarInstallCard() {
   React.useEffect(() => {
     if (window.matchMedia("(display-mode: standalone)").matches) return;
 
-    const ua = navigator.userAgent;
-    const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    if (isIOS) {
-      const isSafari = /safari/i.test(ua) && !/crios|fxios|opios|chrome/i.test(ua);
-      if (isSafari) setVisible(true);
-      return;
-    }
-
-    setVisible(true);
-    if (window.__pwaPrompt) { setPrompt(window.__pwaPrompt); return; }
+    if (window.__pwaPrompt) { setPrompt(window.__pwaPrompt); setVisible(true); return; }
     const handler = (e: Event) => {
       e.preventDefault();
       const p = e as BeforeInstallPromptEvent;
       window.__pwaPrompt = p;
       setPrompt(p);
+      setVisible(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
@@ -189,19 +181,13 @@ function SidebarInstallCard() {
         </div>
 
         {/* Install button */}
-        {prompt ? (
-          <button
-            onClick={install}
-            className="w-full flex items-center justify-center gap-1.5 h-7 bg-foreground text-background text-xs font-semibold rounded-lg hover:opacity-85 transition-opacity cursor-pointer"
-          >
-            <Download size={11} />
-            Install app
-          </button>
-        ) : (
-          <p className="text-[10px] text-muted-foreground leading-snug">
-            Tap <span className="font-medium">Share → Add to Home Screen</span> to install.
-          </p>
-        )}
+        <button
+          onClick={install}
+          className="w-full flex items-center justify-center gap-1.5 h-7 bg-foreground text-background text-xs font-semibold rounded-lg hover:opacity-85 transition-opacity cursor-pointer"
+        >
+          <Download size={11} />
+          Install app
+        </button>
       </div>
     </div>
   );
