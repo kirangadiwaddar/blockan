@@ -219,7 +219,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
       body: html,
     });
     if (user?.id) {
-      import("@/lib/supabase/db").then(({ createNotification }) => {
+      import("@/lib/supabase/notification-actions").then(({ createNotificationAction }) => {
         const actorId = user.id!;
         const snippet = html.replace(/<[^>]+>/g, "").slice(0, 80);
         const commentTargets = new Set([
@@ -229,7 +229,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
         commentTargets.delete(actorId);
         commentTargets.forEach((uid) => {
           if (uid && uid !== "unknown") {
-            createNotification({
+            createNotificationAction({
               userId: uid,
               type: "comment",
               title: `${displayName || "Someone"} commented on ${issue.code ?? "an issue"}`,

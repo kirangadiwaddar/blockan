@@ -200,6 +200,7 @@ export default function TeamPage() {
     await cancelPendingInviteAction(invite.email);
     setCancelTarget(null);
     loadPending();
+    refreshProjects();
   };
 
   // Group pending invites by email so we show one row per person

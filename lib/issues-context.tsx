@@ -16,8 +16,8 @@ import {
   updateIssue as dbUpdateIssue,
   deleteIssue as dbDeleteIssue,
   logIssueActivity,
-  createNotification,
 } from "@/lib/supabase/db";
+import { createNotificationAction } from "@/lib/supabase/notification-actions";
 import { createClient } from "@/lib/supabase/client";
 
 type IssuesCtx = {
@@ -26,6 +26,7 @@ type IssuesCtx = {
   updateIssue: (updated: Issue) => void;
   addIssue: (issue: Issue) => void;
   deleteIssue: (id: string) => void;
+  refreshIssues: () => Promise<void>;
 };
 
 const Ctx = createContext<IssuesCtx>({
@@ -34,6 +35,7 @@ const Ctx = createContext<IssuesCtx>({
   updateIssue: () => {},
   addIssue: () => {},
   deleteIssue: () => {},
+  refreshIssues: async () => {},
 });
 
 export function IssuesProvider({ children }: { children: ReactNode }) {
@@ -48,6 +50,32 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
   const uuidToSlugRef = useRef<Record<string, string>>({});
   // Track issues updated locally so realtime doesn't overwrite our optimistic state
   const locallyUpdatedRef = useRef<Set<string>>(new Set());
+
+  const loadIssues = useCallback(async () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!url || url.includes("placeholder")) return;
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    setLoading(true);
+    const { data: projectRows } = await supabase.from("projects").select("id, key");
+    const uuidToSlug: Record<string, string> = {};
+    (projectRows ?? []).forEach((p: any) => { uuidToSlug[p.id] = (p.key as string).toLowerCase(); });
+    uuidToSlugRef.current = uuidToSlug;
+    const { data: projectMemberships } = await supabase
+      .from("project_members").select("project_id").eq("user_id", user.id);
+    if (!projectMemberships) { setLoading(false); return; }
+    const projectUuids = projectMemberships.map((pm: any) => pm.project_id as string);
+    if (projectUuids.length === 0) { setLoading(false); return; }
+    const allIssues: Issue[] = [];
+    await Promise.all(projectUuids.map(async (uuid) => {
+      const slug = uuidToSlug[uuid];
+      const iss = await fetchIssues(uuid, slug);
+      allIssues.push(...iss);
+    }));
+    setIssues(allIssues);
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -203,7 +231,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
             const prevIds = new Set(prev_.assignees.map((a) => a.id));
             updated.assignees.forEach((a) => {
               if (!prevIds.has(a.id) && a.id !== actorId) {
-                createNotification({
+                createNotificationAction({
                   userId: a.id,
                   type: "assigned",
                   title: `You were assigned to ${updated.code ?? updated.title}`,
@@ -244,7 +272,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <Ctx.Provider value={{ issues, loading, updateIssue, addIssue, deleteIssue }}>
+    <Ctx.Provider value={{ issues, loading, updateIssue, addIssue, deleteIssue, refreshIssues: loadIssues }}>
       {children}
     </Ctx.Provider>
   );

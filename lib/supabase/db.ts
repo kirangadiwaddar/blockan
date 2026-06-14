@@ -4,7 +4,7 @@
  * mapping to/from DB column names is handled here.
  */
 import { createClient } from "@/lib/supabase/client";
-import { sendAssignedNotifications } from "@/lib/supabase/notification-actions";
+import { sendAssignedNotifications, sendAssignmentEmail } from "@/lib/supabase/notification-actions";
 import type { Issue, Project, Sprint, Member } from "@/lib/types";
 
 /* ─── Type helpers ─────────────────────────────────────── */
@@ -513,19 +513,51 @@ export async function updateIssue(
         );
       }
 
+      const assignerName = actor?.user_metadata?.full_name ?? "Someone";
+      const notifTitle   = `You were assigned to ${issueCode ? `${issueCode}: ` : ""}${issueTitle}`;
+
       // Notify newly added assignees via server action (bypasses RLS)
       await sendAssignedNotifications(
         newlyAdded.map((uid) => ({
           user_id:  uid,
           type:     "assigned",
-          title:    `You were assigned to ${issueCode ? `${issueCode}: ` : ""}${issueTitle}`,
-          body:     actor?.user_metadata?.full_name
-                      ? `Assigned by ${actor.user_metadata.full_name}`
-                      : "You have a new assignment.",
+          title:    notifTitle,
+          body:     `Assigned by ${assignerName}`,
           issue_id: id,
           actor_id: actor?.id ?? null,
         }))
       );
+
+      // Send email to each newly assigned user
+      if (newlyAdded.length > 0) {
+        const { data: assigneeProfiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", newlyAdded);
+
+        const { data: projectRow } = await supabase
+          .from("projects")
+          .select("key")
+          .eq("id", projectId)
+          .single();
+
+        const projectSlug = (projectRow?.key as string | null)?.toLowerCase() ?? "";
+
+        await Promise.all(
+          (assigneeProfiles ?? []).map((p: any) => {
+            if (!p.email) return Promise.resolve();
+            return sendAssignmentEmail({
+              toEmail:      p.email,
+              toName:       p.full_name ?? p.email,
+              assignerName,
+              issueCode:    issueCode ?? "",
+              issueTitle,
+              issueId:      id,
+              projectSlug,
+            });
+          })
+        );
+      }
     }
   }
 
@@ -921,78 +953,8 @@ export async function createComment(data: {
   };
 }
 
-/* ─── Notifications ──────────────────────────────────────── */
-
-export type AppNotification = {
-  id: string;
-  userId: string;
-  type: "comment" | "assigned" | "mentioned" | "invite";
-  title: string;
-  body?: string;
-  issueId?: string;
-  actorId?: string;
-  actorName?: string;
-  actorAvatar?: string;
-  read: boolean;
-  createdAt: string;
-};
-
-export async function fetchNotifications(): Promise<AppNotification[]> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-  const { data, error } = await supabase
-    .from("notifications")
-    .select(`*, actor:profiles!actor_id(id, full_name, avatar_url)`)
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(50);
-  if (error || !data) return [];
-  return data.map((row: any) => ({
-    id: row.id,
-    userId: row.user_id,
-    type: row.type,
-    title: row.title,
-    body: row.body ?? undefined,
-    issueId: row.issue_id ?? undefined,
-    actorId: row.actor_id ?? undefined,
-    actorName: row.actor?.full_name ?? undefined,
-    actorAvatar: row.actor?.avatar_url ?? undefined,
-    read: row.read,
-    createdAt: row.created_at,
-  }));
-}
-
-export async function markNotificationRead(id: string): Promise<void> {
-  const supabase = createClient();
-  await supabase.from("notifications").update({ read: true }).eq("id", id);
-}
-
-export async function markAllNotificationsRead(): Promise<void> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  await supabase.from("notifications").update({ read: true }).eq("user_id", user.id);
-}
-
-export async function createNotification(data: {
-  userId: string;
-  type: AppNotification["type"];
-  title: string;
-  body?: string;
-  issueId?: string;
-  actorId?: string;
-}): Promise<void> {
-  const supabase = createClient();
-  await supabase.from("notifications").insert({
-    user_id: data.userId,
-    type: data.type,
-    title: data.title,
-    body: data.body ?? null,
-    issue_id: data.issueId ?? null,
-    actor_id: data.actorId ?? null,
-  });
-}
+/* ─── Notifications — all ops now handled via server actions ─
+   See lib/supabase/notification-actions.ts                   */
 
 /* ─── Labels ─────────────────────────────────────────────── */
 

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { PWARegister } from "@/components/pwa-register";
+import { PWAInstallBanner } from "@/components/pwa-install-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,6 +18,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: { default: "Blockan", template: "%s · Blockan" },
   description: "Project tracker and issue management for modern teams",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Blockan",
+  },
+  formatDetection: { telephone: false },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({
@@ -31,6 +43,7 @@ export default function RootLayout({
     >
       {/* Runs synchronously before React hydrates — prevents dark/accent flash */}
       <head>
+        <meta name="theme-color" content="#0f172a" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{
@@ -57,7 +70,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col"><Providers>{children}</Providers></body>
+      <body className="min-h-full flex flex-col"><Providers>{children}</Providers><PWARegister /><PWAInstallBanner /></body>
     </html>
   );
 }

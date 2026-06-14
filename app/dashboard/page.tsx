@@ -41,7 +41,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateProjectSheet } from "@/components/projects/create-project-sheet";
-import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -141,7 +140,6 @@ export default function DashboardPage() {
   const { issues, loading: issuesLoading } = useIssues();
   const { displayName, user, loading: userLoading } = useUser();
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
-  const [inviteOpen, setInviteOpen] = useState(false);
 
   // ── Role check: owner/admin of ANY project sees full workspace data ──
   const isOrgAdmin = projects.some((p) => {
