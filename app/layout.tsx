@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { PWARegister } from "@/components/pwa-register";
+import { PWAInstallBanner } from "@/components/pwa-install-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -69,7 +70,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col"><Providers>{children}</Providers><PWARegister /></body>
+      <body className="min-h-full flex flex-col"><Providers>{children}</Providers><PWARegister /><PWAInstallBanner /></body>
     </html>
   );
 }
