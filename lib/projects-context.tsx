@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   ReactNode,
 } from "react";
 import { Project, Sprint, Member } from "@/lib/types";
@@ -70,6 +71,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
   const [allMembers, setAllMembers] = useState<Member[]>([]);
   const [loading, setLoading]       = useState(hasSupabase);
   const [uuidMap, setUuidMap]       = useState<Record<string, string>>({}); // slug → uuid
+  const reloadTimerRef              = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Shared fetch-and-sync — called on mount and after mutations to keep state
   // perfectly in sync with the DB. Always updates state regardless of row count.
@@ -133,9 +135,29 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
 
+    // Realtime: reload when projects or members change (debounced to avoid thundering herd)
+    const scheduleReload = () => {
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+      reloadTimerRef.current = setTimeout(() => {
+        loadAll().catch(() => {});
+      }, 800);
+    };
+
+    const realtimeChannel = supabase
+      .channel("projects-members-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "projects" }, () => {
+        if (!cancelled) scheduleReload();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "project_members" }, () => {
+        if (!cancelled) scheduleReload();
+      })
+      .subscribe();
+
     return () => {
       cancelled = true;
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
       listener.subscription.unsubscribe();
+      realtimeChannel.unsubscribe();
     };
   }, [loadAll, hasSupabase]);
 

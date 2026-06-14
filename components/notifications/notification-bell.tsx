@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
-  fetchNotifications,
-  markNotificationRead,
-  markAllNotificationsRead,
+  fetchNotificationsAction,
+  markNotificationReadAction,
+  markAllNotificationsReadAction,
   type AppNotification,
-} from "@/lib/supabase/db";
+} from "@/lib/supabase/notification-actions";
 import { useIssues } from "@/lib/issues-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, MessageSquare, UserCheck, AtSign, Check, CheckCheck, UserPlus, Layers } from "lucide-react";
@@ -46,17 +46,21 @@ export function NotificationBell() {
 
   const unread = notifications.filter((n) => !n.read).length;
 
-  const load = () => {
-    fetchNotifications().then(setNotifications).catch(() => {}).finally(() => setLoading(false));
+  const load = (uid?: string | null) => {
+    const id = uid ?? userId;
+    if (!id) return;
+    fetchNotificationsAction(id).then(setNotifications).catch(() => {}).finally(() => setLoading(false));
   };
 
-  // Get current user id for realtime filter
+  // Get current user id, then immediately load notifications
   useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
-  }, []);
-
-  useEffect(() => {
-    load();
+    createClient().auth.getUser().then(({ data }) => {
+      const id = data.user?.id ?? null;
+      setUserId(id);
+      if (id) load(id);
+      else setLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Realtime subscription — filtered to current user only
@@ -73,7 +77,7 @@ export function NotificationBell() {
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        () => load(),
+        () => load(userId),
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -91,12 +95,12 @@ export function NotificationBell() {
 
   const handleMarkRead = async (id: string) => {
     setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
-    await markNotificationRead(id);
+    await markNotificationReadAction(id);
   };
 
   const handleMarkAll = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    await markAllNotificationsRead();
+    if (userId) await markAllNotificationsReadAction(userId);
   };
 
   // Build correct href for a notification: look up issue in context to get projectId
