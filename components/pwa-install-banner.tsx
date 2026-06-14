@@ -8,25 +8,30 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+declare global {
+  interface Window {
+    __pwaPrompt?: BeforeInstallPromptEvent;
+  }
+}
+
 export function PWAInstallBanner() {
   const [show, setShow] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
-    // Already installed — never show
+    // Already running as installed PWA — never show
     if (window.matchMedia("(display-mode: standalone)").matches) return;
-    // Dismissed this session
+    // User dismissed this session
     if (sessionStorage.getItem("pwa-banner-dismissed")) return;
 
-    // iOS / iPadOS Safari (including Mac Safari with touch)
+    // iOS / iPadOS Safari
     const ua = navigator.userAgent;
     const ios =
       /iphone|ipad|ipod/i.test(ua) ||
       (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     if (ios) {
-      const isSafari =
-        /safari/i.test(ua) && !/crios|fxios|opios|chrome/i.test(ua);
+      const isSafari = /safari/i.test(ua) && !/crios|fxios|opios|chrome/i.test(ua);
       if (isSafari) {
         setIsIOS(true);
         setShow(true);
@@ -34,10 +39,19 @@ export function PWAInstallBanner() {
       return;
     }
 
-    // Chrome / Edge / Samsung Browser — capture install prompt
+    // Check if the prompt was captured early (before React mounted)
+    if (window.__pwaPrompt) {
+      setDeferredPrompt(window.__pwaPrompt);
+      setShow(true);
+      return;
+    }
+
+    // Otherwise listen for it (fires on subsequent navigations or slow loads)
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const prompt = e as BeforeInstallPromptEvent;
+      window.__pwaPrompt = prompt;
+      setDeferredPrompt(prompt);
       setShow(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
@@ -112,15 +126,15 @@ export function PWAInstallBanner() {
 
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold leading-tight">Install Blockan</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
+            <p className="text-xs text-muted-foreground mt-1 leading-snug">
               {isIOS
                 ? 'In Safari: File → "Add to Dock" to install'
-                : "Get the full app experience — works offline, opens instantly"}
+                : "Get the full app — works offline, opens instantly, no browser UI"}
             </p>
             {!isIOS && (
               <button
                 onClick={install}
-                className="mt-2.5 w-full flex items-center justify-center gap-1.5 bg-foreground text-background text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                className="mt-3 w-full flex items-center justify-center gap-1.5 bg-foreground text-background text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
               >
                 <Download size={13} />
                 Install app
@@ -130,7 +144,7 @@ export function PWAInstallBanner() {
 
           <button
             onClick={dismiss}
-            className="shrink-0 size-6 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors cursor-pointer mt-0.5"
+            className="shrink-0 size-6 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X size={14} />
           </button>
