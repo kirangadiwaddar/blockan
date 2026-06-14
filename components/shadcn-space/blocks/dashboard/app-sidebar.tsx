@@ -237,7 +237,7 @@ function SidebarUserMenu() {
         <DropdownMenuContent
           side="top"
           align="start"
-          sideOffset={18}
+          sideOffset={38}
           className="w-[calc(100vw-2rem)] md:w-56 rounded-xl p-1.5"
           positionerClassName="isolate z-[10000] outline-none"
         >
