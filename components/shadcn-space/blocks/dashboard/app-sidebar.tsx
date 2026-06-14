@@ -160,7 +160,7 @@ function SidebarInstallCard() {
     if (!prompt) return;
     await prompt.prompt();
     const { outcome } = await prompt.userChoice;
-    if (outcome === "accepted") dismiss();
+    if (outcome === "accepted") setVisible(false);
   };
 
   if (!visible) return null;
