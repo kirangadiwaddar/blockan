@@ -116,8 +116,8 @@ export function PWAInstallBanner() {
         </div>
       </div>
 
-      {/* ── Desktop — bottom-right toast ── */}
-      <div className="fixed bottom-6 right-6 z-[9999] hidden md:block w-80">
+      {/* ── Desktop — top-right toast ── */}
+      <div className="fixed top-4 right-4 z-[9999] hidden md:block w-80">
         <div className="bg-popover border border-border rounded-2xl shadow-2xl p-4 flex items-start gap-3">
           <div className="size-12 rounded-xl bg-white border border-border flex items-center justify-center shrink-0 overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
