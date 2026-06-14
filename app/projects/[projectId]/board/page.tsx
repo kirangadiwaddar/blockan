@@ -118,35 +118,35 @@ function BoardPageContent({ projectId }: { projectId: string }) {
   return (
     <AppSidebar>
       <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} projectId={project?.id ?? ""} />
-      <div className="flex flex-col gap-4 p-6 overflow-hidden w-full">
+      <div className="flex flex-col gap-4 p-4 sm:p-6 overflow-hidden w-full">
 
-        {/* Title */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className={`avatar-orb ${project?.color} size-7 rounded-full`} />
-            <h1 className="text-xl font-semibold">{project?.name}</h1>
+        {/* Title + actions */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`avatar-orb ${project?.color} size-7 rounded-full shrink-0`} />
+            <h1 className="text-xl font-semibold truncate">{project?.name}</h1>
           </div>
 
           {/* Invite + Export buttons */}
-          <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setInviteOpen(true)}
-            className="flex items-center gap-2 h-9 px-3.5 rounded-lg border border-input bg-background text-sm hover:bg-muted/50 transition-colors cursor-pointer"
-          >
-            <UserPlus size={14} />
-            Invite
-          </button>
-          {projectIssues.length > 0 && (
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => handleExport(`${projectName} - Issues`, ["Todo","In Progress","Reviewing","Completed","Cancelled"])}
-              className="flex items-center gap-2 h-9 px-3.5 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-80 transition-opacity cursor-pointer shrink-0"
+              onClick={() => setInviteOpen(true)}
+              className="flex flex-1 sm:flex-none items-center justify-center gap-2 h-9 px-3.5 rounded-lg border border-input bg-background text-sm hover:bg-muted/50 transition-colors cursor-pointer"
             >
-              <FileDown size={14} />
-              Export XLSX
+              <UserPlus size={14} />
+              Invite
             </button>
-          )}
+            {projectIssues.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handleExport(`${projectName} - Issues`, ["Todo","In Progress","Reviewing","Completed","Cancelled"])}
+                className="flex flex-1 sm:flex-none items-center justify-center gap-2 h-9 px-3.5 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                <FileDown size={14} />
+                Export XLSX
+              </button>
+            )}
           </div>
         </div>
 

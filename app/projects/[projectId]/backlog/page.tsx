@@ -411,14 +411,14 @@ function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }
       <div className="flex flex-col gap-5 p-6 w-full">
 
         {/* ── Page header ── */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className={`avatar-orb ${project.color} size-7 rounded-full`} />
-            <h1 className="text-xl font-semibold">{project.name} — Backlog</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`avatar-orb ${project.color} size-7 rounded-full shrink-0`} />
+            <h1 className="text-xl font-semibold truncate">{project.name} — Backlog</h1>
           </div>
           <Link
             href={`/projects/${project.id}/board`}
-            className={buttonVariants({ variant: "outline", className: "cursor-pointer" })}
+            className={buttonVariants({ variant: "outline", className: "cursor-pointer w-full sm:w-auto justify-center" })}
           >
             <SquareStack size={14} /> Board view
           </Link>
