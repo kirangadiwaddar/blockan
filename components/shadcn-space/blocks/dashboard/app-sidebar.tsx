@@ -143,8 +143,6 @@ function SidebarInstallCard() {
 
   React.useEffect(() => {
     if (window.matchMedia("(display-mode: standalone)").matches) return;
-    const dismissed = localStorage.getItem("pwa-sidebar-dismissed");
-    if (dismissed && Date.now() - Number(dismissed) < 30 * 24 * 60 * 60 * 1000) return;
 
     const ua = navigator.userAgent;
     const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -154,22 +152,17 @@ function SidebarInstallCard() {
       return;
     }
 
-    if (window.__pwaPrompt) { setPrompt(window.__pwaPrompt); setVisible(true); return; }
+    setVisible(true);
+    if (window.__pwaPrompt) { setPrompt(window.__pwaPrompt); return; }
     const handler = (e: Event) => {
       e.preventDefault();
       const p = e as BeforeInstallPromptEvent;
       window.__pwaPrompt = p;
       setPrompt(p);
-      setVisible(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
-
-  const dismiss = () => {
-    localStorage.setItem("pwa-sidebar-dismissed", String(Date.now()));
-    setVisible(false);
-  };
 
   const install = async () => {
     if (!prompt) return;
@@ -183,14 +176,6 @@ function SidebarInstallCard() {
   return (
     <div className="px-3 pb-3 pt-2">
       <div className="relative rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 px-3 py-2.5">
-        {/* Dismiss */}
-        <button
-          onClick={dismiss}
-          className="absolute top-2 right-2 size-5 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
-        >
-          <X size={11} />
-        </button>
-
         {/* Header */}
         <div className="flex items-center gap-2 mb-2 pr-4">
           <div className="size-7 rounded-lg overflow-hidden shrink-0 bg-white border border-border/40 shadow-sm">
