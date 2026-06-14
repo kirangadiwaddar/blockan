@@ -51,6 +51,12 @@ export default function RootLayout({
       {/* Runs synchronously before React hydrates — prevents dark/accent flash */}
       <head>
         <meta name="theme-color" content="#0f172a" />
+        {/* Capture beforeinstallprompt BEFORE React mounts so we never miss it */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__pwaPrompt=e;});`,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{
@@ -77,7 +83,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col"><Providers>{children}</Providers><PWARegister /><PWAInstallBanner /></body>
+      <body className="min-h-[100dvh] flex flex-col"><Providers>{children}</Providers><PWARegister /><PWAInstallBanner /></body>
     </html>
   );
 }

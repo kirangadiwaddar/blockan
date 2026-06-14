@@ -294,18 +294,22 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
       )}
 
       {/* Mobile drawer */}
-      <div onClick={(e) => e.stopPropagation()} className={`fixed inset-y-0 left-0 z-9999 w-64 bg-background border-r transform transition-transform duration-200 ease-in-out md:hidden ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex items-center justify-between px-4 py-4 border-b">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={`fixed inset-y-0 left-0 z-[9999] w-72 bg-background border-r flex flex-col transform transition-transform duration-200 ease-in-out md:hidden ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
+        style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="flex items-center justify-between px-4 py-4 border-b shrink-0">
           <Logo />
           <button onClick={() => setMobileOpen(false)} className="p-1 rounded-md hover:bg-muted cursor-pointer">
             <X size={18} />
           </button>
         </div>
-        <div className="flex flex-col h-[calc(100vh-65px)]">
+        <div className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <SidebarNav projects={typedProjects} selectedSlug={selectedSlug} onSelect={handleSelect} />
           </div>
-          <div className="px-3 py-3 border-t">
+          <div className="px-3 py-3 border-t shrink-0">
             <SidebarUserMenu />
           </div>
         </div>
@@ -313,7 +317,7 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
 
       {/* Desktop sidebar */}
       <Sidebar className="py-4 pb-0 px-0 bg-background hidden md:flex">
-        <div className="flex flex-col h-full bg-background">
+        <div className="flex flex-col h-[100dvh] bg-background">
           {/* Logo */}
           <SidebarHeader className="py-0 px-4 shrink-0">
             <SidebarMenu>
@@ -327,7 +331,7 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
 
           {/* Nav */}
           <SidebarContent className="overflow-hidden gap-0 px-0 flex-1">
-            <SimpleBar autoHide={true} className="flex-1 h-[calc(100vh-100px)]">
+            <SimpleBar autoHide={true} className="flex-1 h-[calc(100dvh-100px)]">
               <div className="px-4 pt-4">
                 <SidebarNav projects={typedProjects} selectedSlug={selectedSlug} onSelect={handleSelect} />
               </div>
@@ -343,7 +347,11 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
 
       {/* Main content */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-        <header className="sticky top-0 z-50 flex items-center gap-3 border-b px-4 md:px-6 py-3 bg-background">
+        {/* Header — top safe area padding so content clears iOS notch */}
+        <header
+          className="sticky top-0 z-50 flex items-center gap-3 border-b px-4 md:px-6 py-3 bg-background"
+          style={{ paddingTop: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top)))" }}
+        >
           <button
             className="md:hidden p-1.5 rounded-md hover:bg-muted cursor-pointer shrink-0"
             onClick={() => setMobileOpen(true)}
@@ -352,7 +360,13 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
           </button>
           <SiteHeader />
         </header>
-        <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
+        {/* Main — bottom safe area so content clears iOS home bar */}
+        <main
+          className="flex-1 min-w-0 overflow-hidden"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          {children}
+        </main>
       </div>
     </SidebarProvider>
   );
