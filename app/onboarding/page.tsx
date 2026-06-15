@@ -141,7 +141,7 @@ export default function OnboardingPage() {
     setSaving(true);
     if (inviteEmails.length > 0) {
       const { inviteNewUser } = await import("@/lib/supabase/invite-actions");
-      await Promise.allSettled(inviteEmails.map((email) => inviteNewUser({ email, projectId: "", role: "member" }).catch(() => {})));
+      await Promise.allSettled(inviteEmails.map((email) => inviteNewUser({ email, projectIds: [], role: "member", invitedBy: userId }).catch(() => {})));
     }
     router.push("/");
   };
