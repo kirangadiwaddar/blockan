@@ -230,6 +230,16 @@ export async function deleteProject(uuid: string): Promise<boolean> {
   return !error;
 }
 
+export async function updateProject(uuid: string, data: {
+  name?: string;
+  description?: string;
+  color?: string;
+}): Promise<boolean> {
+  const supabase = createClient();
+  const { error } = await supabase.from("projects").update(data).eq("id", uuid);
+  return !error;
+}
+
 /* ─── Sprints ───────────────────────────────────────────── */
 
 export async function fetchSprints(projectUuid: string): Promise<Sprint[]> {

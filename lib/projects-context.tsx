@@ -19,6 +19,7 @@ import {
   createSprint as dbCreateSprint,
   updateSprintStatus as dbUpdateSprintStatus,
   deleteProject as dbDeleteProject,
+  updateProject as dbUpdateProject,
   removeMemberFromProject as dbRemoveMember,
   updateMemberRole as dbUpdateMemberRole,
 } from "@/lib/supabase/db";
@@ -32,6 +33,7 @@ type ProjectsCtx = {
   loading: boolean;
   addProject: (p: Project) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
+  updateProject: (slug: string, data: { name?: string; description?: string; color?: string }) => Promise<void>;
   addSprint: (s: Sprint, projectSlug: string) => Promise<void>;
   updateSprintStatus: (id: string, status: Sprint["status"]) => void;
   sprintsForProject: (projectId: string) => Sprint[];
@@ -49,6 +51,7 @@ const Ctx = createContext<ProjectsCtx>({
   loading: false,
   addProject: async () => {},
   deleteProject: async () => {},
+  updateProject: async () => {},
   addSprint: async () => {},
   updateSprintStatus: () => {},
   sprintsForProject: (id) => mockSprints.filter((s) => s.projectId === id),
@@ -203,6 +206,14 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     }
   }, [uuidMap, loadAll]);
 
+  const updateProject = useCallback(async (slug: string, data: { name?: string; description?: string; color?: string }) => {
+    setProjects((prev) => prev.map((p) => p.id === slug ? { ...p, ...data } : p));
+    const uuid = uuidMap[slug];
+    if (!uuid) return;
+    const ok = await dbUpdateProject(uuid, data).catch(() => false);
+    if (!ok) await loadAll().catch(() => {});
+  }, [uuidMap, loadAll]);
+
   const addSprint = useCallback(async (s: Sprint, projectSlug: string) => {
     setSprints((prev) => [...prev, s]);
 
@@ -275,6 +286,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       loading,
       addProject,
       deleteProject,
+      updateProject,
       addSprint,
       updateSprintStatus,
       sprintsForProject,

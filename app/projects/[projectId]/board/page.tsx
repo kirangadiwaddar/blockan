@@ -8,13 +8,14 @@ import { useIssues } from "@/lib/issues-context";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, FileDown, UserPlus } from "lucide-react";
+import { CalendarDays, FileDown, UserPlus, Settings2 } from "lucide-react";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
+import { ProjectSettingsSheet } from "@/components/projects/project-settings-sheet";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { type Issue } from "@/lib/types";
-import { useProjectRole, canEditProject } from "@/lib/projects-context";
+import { useProjectRole, canEditProject, canManageSprints } from "@/lib/projects-context";
 import * as XLSX from "xlsx";
 
 /* ─── Export helpers (outside component) ─────────────────── */
@@ -64,6 +65,8 @@ function BoardPageContent({ projectId }: { projectId: string }) {
   const readOnly = !canEditProject(role);
 
   const [inviteOpen, setInviteOpen] = React.useState(false);
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const canManage = canManageSprints(role);
 
   const project = projectBySlug(projectId);
   const sprints = sprintsForProject(project?.id ?? projectId);
@@ -118,6 +121,7 @@ function BoardPageContent({ projectId }: { projectId: string }) {
   return (
     <AppSidebar>
       <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} projectId={project?.id ?? ""} />
+      {project && <ProjectSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} project={project} />}
       <div className="flex flex-col gap-4 p-4 sm:p-6 overflow-hidden w-full">
 
         {/* Title + actions */}
@@ -127,8 +131,18 @@ function BoardPageContent({ projectId }: { projectId: string }) {
             <h1 className="text-xl font-semibold truncate">{project?.name}</h1>
           </div>
 
-          {/* Invite + Export buttons */}
+          {/* Invite + Export + Settings buttons */}
           <div className="flex items-center gap-2">
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="flex items-center justify-center size-9 rounded-lg border border-input bg-background hover:bg-muted/50 transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
+                title="Project settings"
+              >
+                <Settings2 size={15} />
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setInviteOpen(true)}
