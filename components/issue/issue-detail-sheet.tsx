@@ -25,14 +25,14 @@ import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronDown, CalendarDays, User, Tag, Layers, Play,
   MessageSquare, Clock, X, Pencil, Check, Trash2,
-  Copy, ArrowRight, UserCheck, Flag, GitBranch, Link2,
+  Copy, ArrowRight,
 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Lightbox } from "@/components/ui/lightbox";
 import { cn } from "@/lib/utils";
-import { fetchIssueActivities, updateIssueLabels, type IssueActivity } from "@/lib/supabase/db";
+import { updateIssueLabels } from "@/lib/supabase/db";
 
 /* ─── Config ─────────────────────────────────────────────── */
 
@@ -159,7 +159,6 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
   const { user, displayName, avatarUrl, initials } = useUser();
 
   const comments = issue ? getComments(issue.id) : [];
-  const [activities, setActivities] = useState<IssueActivity[]>([]);
   const [draft, setDraft] = useState("");
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -168,21 +167,16 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
   const [editingDesc, setEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState(issue?.description ?? "");
 
-  const refreshActivities = useCallback((issueId: string) => {
-    fetchIssueActivities(issueId).then(setActivities).catch(() => setActivities([]));
-  }, []);
-
-  // Load existing comments from DB whenever a new issue is opened
+  // Load comments when the sheet opens or the issue identity changes
   useEffect(() => {
     if (issue && open) {
       loadComments(issue.id);
-      refreshActivities(issue.id);
       setTitleValue(issue.title);
       setDescValue(issue.description ?? "");
       setEditingTitle(false);
       setEditingDesc(false);
     }
-  }, [issue?.id, open, loadComments, refreshActivities]);
+  }, [issue?.id, open, loadComments]);
 
   if (!issue) return null;
 
@@ -196,7 +190,9 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
   const TypeIcon = typeInfo.icon;
   const statusInfo = STATUSES.find((s) => s.value === issue.status) ?? STATUSES[0];
 
-  const update = (patch: Partial<Issue>) => onUpdate?.({ ...issue, ...patch, updatedAt: new Date().toISOString() });
+  const update = (patch: Partial<Issue>) => {
+    onUpdate?.({ ...issue, ...patch, updatedAt: new Date().toISOString() });
+  };
 
   const relativeTime = (iso: string) => {
     const diff = Date.now() - new Date(iso).getTime();
@@ -742,55 +738,6 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
               )}
             </div>
 
-            <Separator />
-
-            {/* Activity Log */}
-            <div className="flex flex-col gap-3">
-              <h3 className="text-sm font-semibold">Activity</h3>
-
-              {activities.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-2">No activity recorded yet. Changes to status, priority, and assignees will appear here.</p>
-              ) : (
-                <div className="flex flex-col gap-0">
-                  {activities.map((act, idx) => (
-                    <div key={act.id} className="flex gap-3 py-2 relative">
-                      {idx < activities.length - 1 && (
-                        <div className="absolute left-[13px] top-8 bottom-0 w-px bg-border" />
-                      )}
-                      <div className="size-7 rounded-full bg-muted flex items-center justify-center shrink-0 z-10">
-                        {act.eventType === "status_changed"   && <GitBranch size={12} className="text-blue-500" />}
-                        {act.eventType === "priority_changed" && <Flag size={12} className="text-orange-500" />}
-                        {act.eventType === "assignee_changed" && <UserCheck size={12} className="text-green-500" />}
-                        {act.eventType === "created"          && <Link2 size={12} className="text-muted-foreground" />}
-                        {act.eventType === "title_changed"    && <Pencil size={12} className="text-muted-foreground" />}
-                        {act.eventType === "sprint_changed"   && <Layers size={12} className="text-purple-500" />}
-                      </div>
-                      <div className="flex-1 min-w-0 pt-1">
-                        <span className="text-xs font-medium">{act.actorName}</span>
-                        <span className="text-xs text-muted-foreground ml-1">
-                          {act.eventType === "status_changed"   && "changed status"}
-                          {act.eventType === "priority_changed" && "changed priority"}
-                          {act.eventType === "assignee_changed" && "changed assignee"}
-                          {act.eventType === "created"          && "created this issue"}
-                          {act.eventType === "title_changed"    && "updated title"}
-                          {act.eventType === "sprint_changed"   && "changed sprint"}
-                        </span>
-                        {act.fromValue && act.toValue && (
-                          <span className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">
-                            <span className="line-through opacity-60">{act.fromValue}</span>
-                            <ArrowRight size={10} />
-                            <span className="font-medium text-foreground">{act.toValue}</span>
-                          </span>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          <Clock size={9} className="inline mr-0.5" />{relativeTime(act.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </SheetContent>
