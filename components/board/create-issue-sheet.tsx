@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Issue, IssueStatus, IssuePriority, IssueType, Member } from "@/lib/types";
 import { useUser } from "@/lib/supabase/user-context";
 import { useProjects } from "@/lib/projects-context";
-import { createIssue as dbCreateIssue } from "@/lib/supabase/db";
+import { createIssue as dbCreateIssue, logIssueActivity } from "@/lib/supabase/db";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter,
 } from "@/components/ui/sheet";
@@ -181,6 +181,10 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
         points: points ? parseInt(points) : undefined,
         dueDate: dueDate || undefined,
         code,
+      }).then((created) => {
+        if (created?.id) {
+          logIssueActivity({ issueId: created.id, actorId: user.id, eventType: "created" }).catch(() => {});
+        }
       }).catch(console.error).finally(() => setCreating(false));
     }
   };

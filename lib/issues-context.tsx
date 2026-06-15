@@ -221,6 +221,14 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
           if (prev_.priority !== updated.priority) {
             logIssueActivity({ issueId: updated.id, actorId, eventType: "priority_changed", fromValue: prev_.priority, toValue: updated.priority }).catch(() => {});
           }
+          if (prev_.title !== updated.title) {
+            logIssueActivity({ issueId: updated.id, actorId, eventType: "title_changed", fromValue: prev_.title, toValue: updated.title }).catch(() => {});
+          }
+          const prevSprint = prev_.sprintId ?? null;
+          const newSprint = updated.sprintId ?? null;
+          if (prevSprint !== newSprint) {
+            logIssueActivity({ issueId: updated.id, actorId, eventType: "sprint_changed", fromValue: prevSprint, toValue: newSprint }).catch(() => {});
+          }
           const prevAssigneeIds = prev_.assignees.map((a) => a.id).sort().join(",");
           const newAssigneeIds = updated.assignees.map((a) => a.id).sort().join(",");
           if (prevAssigneeIds !== newAssigneeIds) {
