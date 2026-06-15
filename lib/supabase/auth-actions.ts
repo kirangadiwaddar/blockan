@@ -21,6 +21,13 @@ export async function signIn(formData: FormData) {
       redirect(`/two-factor-authentication?factorId=${factorId}`);
     }
 
+    // New user with no name set → onboarding
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("full_name, is_pending").eq("id", user.id).single();
+      if (!profile?.full_name || profile?.is_pending) redirect("/onboarding");
+    }
+
     redirect("/dashboard");
   } catch (error) {
     if (isRedirectError(error)) throw error;

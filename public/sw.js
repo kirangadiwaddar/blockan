@@ -35,7 +35,24 @@ self.addEventListener("fetch", (e) => {
   )
     return;
 
-  // Static assets: cache-first (they're content-hashed, safe to cache forever)
+  // JS/CSS chunks: network-first so recompiled chunks are always fetched fresh.
+  // Falls back to cache only when offline.
+  if (url.pathname.startsWith("/_next/static/chunks/") || url.pathname.startsWith("/_next/static/css/")) {
+    e.respondWith(
+      fetch(request)
+        .then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then((c) => c.put(request, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Other static assets (fonts, media): cache-first (content-hashed, never change)
   if (url.pathname.startsWith("/_next/static/")) {
     e.respondWith(
       caches.match(request).then(

@@ -143,7 +143,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
       reloadTimerRef.current = setTimeout(() => {
         loadAll().catch(() => {});
-      }, 800);
+      }, 200);
     };
 
     const realtimeChannel = supabase

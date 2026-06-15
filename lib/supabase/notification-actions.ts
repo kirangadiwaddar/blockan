@@ -1,8 +1,6 @@
 "use server";
 
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
-
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -12,9 +10,10 @@ function getAdminClient() {
   });
 }
 
-function getResend() {
+async function getResend() {
   const key = process.env.RESEND_API_KEY;
   if (!key) return null;
+  const { Resend } = await import("resend");
   return new Resend(key);
 }
 
@@ -70,7 +69,7 @@ export async function sendAssignmentEmail(data: {
   issueId: string;
   projectSlug: string;
 }): Promise<void> {
-  const resend = getResend();
+  const resend = await getResend();
   if (!resend) return;
 
   const issueUrl = `${APP_URL}/projects/${data.projectSlug}/issues/${data.issueId}`;

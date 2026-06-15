@@ -88,10 +88,10 @@ export function ProjectCard({ project, onDelete, onEdit }: { project: Project; o
       <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-border/60 bg-muted/20">
         <div className="flex items-center gap-2">
           {(() => {
-            const assignees = project.members.filter(m => m.role !== "owner");
+            const assignees = (project as any).assignedMembers ?? [];
             return assignees.length > 0 ? (
               <AvatarGroup>
-                {assignees.slice(0, 4).map((m) => (
+                {assignees.slice(0, 4).map((m: any) => (
                   <Avatar key={m.id} className="size-6 ring-2 ring-background dark:ring-card">
                     <AvatarImage src={m.avatar} alt={m.name} />
                     <AvatarFallback className="text-[9px]" colorSeed={m.id}>{m.initials}</AvatarFallback>

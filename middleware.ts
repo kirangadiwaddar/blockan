@@ -47,6 +47,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Authenticated user on any protected route — enforce onboarding completion
+  if (user && !isAuthRoute && pathname !== "/onboarding" && !pathname.startsWith("/auth")) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, is_pending")
+      .eq("id", user.id)
+      .single();
+    if (!profile?.full_name || profile?.is_pending) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
+  }
+
   return supabaseResponse;
 }
 

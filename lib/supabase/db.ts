@@ -138,7 +138,7 @@ export async function fetchProjects(): Promise<Project[]> {
         user_id,
         profiles!project_members_user_id_fkey(id, full_name, avatar_url, email, is_pending)
       ),
-      issues(id, status)
+      issues(id, status, assignee_id, issue_assignees(user_id))
     `)
     .in("id", projectIds)
     .eq("status", "active")
@@ -157,6 +157,15 @@ export async function fetchProjects(): Promise<Project[]> {
       (i: any) => i.status !== "Completed" && i.status !== "Cancelled"
     ).length;
 
+    // Collect unique user IDs that have at least one assigned issue
+    const assignedUserIds = new Set<string>();
+    for (const issue of allIssues) {
+      if (issue.assignee_id) assignedUserIds.add(issue.assignee_id);
+      for (const ia of issue.issue_assignees ?? []) {
+        if (ia.user_id) assignedUserIds.add(ia.user_id);
+      }
+    }
+
     return {
       id: row.key.toLowerCase(),   // URL slug
       _uuid: row.id,               // Real DB uuid (stored for mutations)
@@ -166,6 +175,7 @@ export async function fetchProjects(): Promise<Project[]> {
       description: row.description ?? "",
       color: normalizeProjectColor(row.color),
       members,
+      assignedMembers: members.filter(m => assignedUserIds.has(m.id)),
       openIssues,
       totalIssues: allIssues.length,
       progress: allIssues.length
