@@ -14,7 +14,7 @@ import {
 import {
   LucideIcon, Grid3x2, ListTree, SquareStack, CalendarDays, BookText,
   FolderRoot, ChartPie, Users, Settings, Menu, X,
-  LogOut, CircleUserRound, ChevronUp, ChevronDown, Check, FolderKanban, Search, Download,
+  LogOut, CircleUserRound, ChevronUp, ChevronDown, Check, FolderKanban, Search,
 } from "lucide-react";
 import { SiteHeader } from "@/components/shadcn-space/blocks/dashboard/site-header";
 import SimpleBar from "simplebar-react";
@@ -127,69 +127,6 @@ function ProjectSwitcher({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-/* ── Sidebar install card ────────────────────────────────── */
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-};
-declare global { interface Window { __pwaPrompt?: BeforeInstallPromptEvent; } }
-
-function SidebarInstallCard() {
-  const [visible, setVisible] = useState(false);
-  const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-
-  React.useEffect(() => {
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
-
-    if (window.__pwaPrompt) { setPrompt(window.__pwaPrompt); setVisible(true); return; }
-    const handler = (e: Event) => {
-      e.preventDefault();
-      const p = e as BeforeInstallPromptEvent;
-      window.__pwaPrompt = p;
-      setPrompt(p);
-      setVisible(true);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-
-  const install = async () => {
-    if (!prompt) return;
-    await prompt.prompt();
-    const { outcome } = await prompt.userChoice;
-    if (outcome === "accepted") setVisible(false);
-  };
-
-  if (!visible) return null;
-
-  return (
-    <div className="px-3 pb-3 pt-2">
-      <div className="relative rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 px-3 py-2.5">
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-2 pr-4">
-          <div className="size-7 rounded-lg overflow-hidden shrink-0 bg-white border border-border/40 shadow-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon-192.png" alt="Blockan" className="size-full object-contain" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold leading-tight">Get the App</p>
-            <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Faster &amp; works offline</p>
-          </div>
-        </div>
-
-        {/* Install button */}
-        <button
-          onClick={install}
-          className="w-full flex items-center justify-center gap-1.5 h-7 bg-foreground text-background text-xs font-semibold rounded-lg hover:opacity-85 transition-opacity cursor-pointer"
-        >
-          <Download size={11} />
-          Install app
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -373,7 +310,6 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
             <SidebarNav projects={typedProjects} selectedSlug={selectedSlug} onSelect={handleSelect} />
           </div>
           <div className="shrink-0">
-            <SidebarInstallCard />
             <div className="border-t px-3 pt-2 pb-5">
               <SidebarUserMenu />
             </div>
@@ -406,7 +342,6 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
 
           {/* Install card + user profile at bottom */}
           <div className="shrink-0">
-            <SidebarInstallCard />
             <div className="border-t px-3 pt-2 pb-5">
               <SidebarUserMenu />
             </div>
