@@ -29,6 +29,10 @@ function InviteRegisterForm({ token, email, projectNames }: {
     e.preventDefault();
     setError(null);
     const formData = new FormData(e.currentTarget);
+    if (formData.get("password") !== formData.get("confirm_password")) {
+      setError("Passwords do not match");
+      return;
+    }
     formData.set("token", token);
     formData.set("email", email);
     startTransition(async () => {
@@ -80,12 +84,12 @@ function InviteRegisterForm({ token, email, projectNames }: {
             <form onSubmit={handleSubmit}>
               <FieldGroup className="gap-5">
                 <Field className="gap-1.5">
-                  <FieldLabel htmlFor="name" className="text-sm text-muted-foreground font-normal">Full name*</FieldLabel>
-                  <Input id="name" name="name" type="text" placeholder="John Carter" required disabled={isPending} className="dark:bg-background shadow-xs h-9" />
-                </Field>
-                <Field className="gap-1.5">
                   <FieldLabel htmlFor="password" className="text-sm text-muted-foreground font-normal">Create a password*</FieldLabel>
                   <Input id="password" name="password" type="password" placeholder="Min. 8 characters" required minLength={8} disabled={isPending} className="dark:bg-background shadow-xs h-9" />
+                </Field>
+                <Field className="gap-1.5">
+                  <FieldLabel htmlFor="confirm_password" className="text-sm text-muted-foreground font-normal">Confirm password*</FieldLabel>
+                  <Input id="confirm_password" name="confirm_password" type="password" placeholder="Re-enter your password" required disabled={isPending} className="dark:bg-background shadow-xs h-9" />
                 </Field>
                 <Button type="submit" size="lg" disabled={isPending} className="rounded-lg cursor-pointer h-10 hover:bg-primary/80 w-full">
                   {isPending ? <><Loader2 size={14} className="animate-spin" /> Creating your account…</> : "Join workspace"}
@@ -154,6 +158,10 @@ const RegisterForm = () => {
     e.preventDefault();
     setError(null);
     const formData = new FormData(e.currentTarget);
+    if (formData.get("password") !== formData.get("confirm_password")) {
+      setError("Passwords do not match");
+      return;
+    }
     startTransition(async () => {
       const result = await signUp(formData);
       if (result?.error) setError(result.error);
@@ -216,16 +224,16 @@ const RegisterForm = () => {
 
                 <div className="flex flex-col gap-4">
                   <Field className="gap-1.5">
-                    <FieldLabel htmlFor="name" className="text-sm text-muted-foreground font-normal">Full name*</FieldLabel>
-                    <Input id="name" name="name" type="text" placeholder="John Carter" required disabled={isPending} className="dark:bg-background shadow-xs h-9" />
-                  </Field>
-                  <Field className="gap-1.5">
                     <FieldLabel htmlFor="email" className="text-sm text-muted-foreground font-normal">Email*</FieldLabel>
                     <Input id="email" name="email" type="email" placeholder="you@example.com" required disabled={isPending} className="dark:bg-background shadow-xs h-9" />
                   </Field>
                   <Field className="gap-1.5">
                     <FieldLabel htmlFor="password" className="text-sm text-muted-foreground font-normal">Password*</FieldLabel>
                     <Input id="password" name="password" type="password" placeholder="Min. 8 characters" required minLength={8} disabled={isPending} className="dark:bg-background shadow-xs h-9" />
+                  </Field>
+                  <Field className="gap-1.5">
+                    <FieldLabel htmlFor="confirm_password" className="text-sm text-muted-foreground font-normal">Confirm password*</FieldLabel>
+                    <Input id="confirm_password" name="confirm_password" type="password" placeholder="Re-enter your password" required disabled={isPending} className="dark:bg-background shadow-xs h-9" />
                   </Field>
                 </div>
 

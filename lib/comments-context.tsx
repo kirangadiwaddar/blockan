@@ -67,7 +67,6 @@ export function CommentsProvider({ children }: { children: ReactNode }) {
         { event: "INSERT", schema: "public", table: "comments" },
         async (payload) => {
           const row = payload.new as any;
-          // Only process if we've already loaded this issue's comments
           if (!loadedRef.current.has(row.issue_id)) return;
 
           const { data: profile } = await supabase
@@ -81,6 +80,14 @@ export function CommentsProvider({ children }: { children: ReactNode }) {
             if (prev.some((c) => c.id === comment.id)) return prev;
             return [...prev, comment];
           });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "comments" },
+        (payload) => {
+          const id = (payload.old as any)?.id;
+          if (id) setComments((prev) => prev.filter((c) => c.id !== id));
         }
       )
       .subscribe();

@@ -1,9 +1,30 @@
 "use server";
 
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
+
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "Blockan <onboarding@resend.dev>";
+
+async function sendInviteEmail(to: string, inviteLink: string, projectLabel: string) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  const { Resend } = await import("resend");
+  const resend = new Resend(key);
+  const { error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: "You've been invited to Blockan",
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
+        <h2 style="margin:0 0 8px;font-size:20px;font-weight:600">You're invited</h2>
+        <p style="margin:0 0 24px;color:#6b7280;font-size:15px">${projectLabel}</p>
+        <a href="${inviteLink}" style="display:inline-block;background:#000;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:500">Accept invitation</a>
+        <p style="margin:24px 0 0;color:#9ca3af;font-size:13px">Or copy this link: ${inviteLink}</p>
+      </div>
+    `,
+  });
+  if (error) console.error("[invite] email send failed:", error);
+}
 
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -117,6 +138,13 @@ export async function inviteNewUser(data: {
     }
 
     const inviteLink = `${appUrl}/register?token=${token}`;
+
+    // Email the invite link to the invitee
+    const projectLabel = data.projectIds.length > 0
+      ? "You've been invited to join a project on Blockan."
+      : "You've been invited to join Blockan.";
+    await sendInviteEmail(data.email, inviteLink, projectLabel);
+
     return { success: true, inviteLink };
   } catch (err: any) {
     return { success: false, error: err?.message ?? "Failed to create invite" };
@@ -192,7 +220,6 @@ export async function generateInviteLink(
 export async function completeInviteRegistration(formData: FormData): Promise<{ error?: string }> {
   try {
     const token = formData.get("token") as string;
-    const name = formData.get("name") as string;
     const password = formData.get("password") as string;
     const email = formData.get("email") as string;
 
@@ -223,18 +250,15 @@ export async function completeInviteRegistration(formData: FormData): Promise<{ 
 
     const userId = profile.id;
 
-    // Update the existing auth user — set real password + name
+    // Track whether this was a project-scoped invite for onboarding redirect
+    const isProjectScoped = invites.some((r: any) => r.project_id != null);
+
+    // Update the existing auth user — set real password, keep is_pending until onboarding
     const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
       password,
-      user_metadata: { full_name: name, is_pending: false },
+      user_metadata: { full_name: null, is_pending: true, invite_scoped: isProjectScoped },
     });
     if (updateError) return { error: updateError.message };
-
-    // Update profile
-    await admin.from("profiles").update({
-      full_name: name,
-      is_pending: false,
-    }).eq("id", userId);
 
     // Add user to project_members for all projects from their invite
     const role = invites[0]?.role ?? "member";
@@ -254,13 +278,15 @@ export async function completeInviteRegistration(formData: FormData): Promise<{ 
     // Delete pending_invites rows for this token
     await admin.from("pending_invites").delete().eq("token", token);
 
-    // Sign them in
+    // Sign them in and send to onboarding to collect name + avatar
+    const { createClient } = await import("@/lib/supabase/server");
     const supabase = await createClient();
     await supabase.auth.signInWithPassword({ email, password });
 
-    redirect("/dashboard");
-  } catch (err) {
-    if (isRedirectError(err)) throw err;
+    redirect("/onboarding");
+  } catch (err: any) {
+    // Re-throw Next.js redirect — it uses a special digest to signal redirects
+    if (err?.digest?.startsWith("NEXT_REDIRECT")) throw err;
     return { error: "Something went wrong. Please try again." };
   }
 }

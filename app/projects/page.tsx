@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import AppSidebar from "@/components/shadcn-space/blocks/dashboard/app-sidebar";
 import { ProjectCard } from "@/components/projects/project-card";
 import { CreateProjectSheet } from "@/components/projects/create-project-sheet";
+import { ProjectSettingsSheet } from "@/components/projects/project-settings-sheet";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useProjects } from "@/lib/projects-context";
 import { Project } from "@/lib/types";
@@ -24,6 +25,7 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [editTarget, setEditTarget] = useState<Project | null>(null);
 
   const filtered = projects.filter(
     (p) =>
@@ -80,6 +82,7 @@ export default function ProjectsPage() {
                 <ProjectCard
                   key={project.id}
                   project={project}
+                  onEdit={() => setEditTarget(project)}
                   onDelete={() => setDeleteTarget(project)}
                 />
               ))
@@ -109,6 +112,14 @@ export default function ProjectsPage() {
         onOpenChange={setSheetOpen}
         onCreated={async (p) => { await addProject(p); router.push(`/projects/${p.key.toLowerCase()}/board`); }}
       />
+
+      {editTarget && (
+        <ProjectSettingsSheet
+          open={!!editTarget}
+          onOpenChange={(o) => { if (!o) setEditTarget(null); }}
+          project={editTarget}
+        />
+      )}
 
       <ConfirmDialog
         open={!!deleteTarget}

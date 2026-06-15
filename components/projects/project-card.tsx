@@ -2,12 +2,12 @@
 
 import { Project } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
-import { Trash2, MoreHorizontal, ArrowRight } from "lucide-react";
+import { Trash2, Pencil, MoreHorizontal, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-export function ProjectCard({ project, onDelete }: { project: Project; onDelete?: () => void }) {
+export function ProjectCard({ project, onDelete, onEdit }: { project: Project; onDelete?: () => void; onEdit?: () => void }) {
   const base = `/projects/${project.id}`;
   const router = useRouter();
 
@@ -56,6 +56,12 @@ export function ProjectCard({ project, onDelete }: { project: Project; onDelete?
                 />
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
+                    className="cursor-pointer gap-2 text-xs"
+                    onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
+                  >
+                    <Pencil size={13} /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     variant="destructive"
                     className="cursor-pointer gap-2 text-xs"
                     onClick={(e) => { e.stopPropagation(); onDelete?.(); }}
@@ -82,10 +88,10 @@ export function ProjectCard({ project, onDelete }: { project: Project; onDelete?
       <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-border/60 bg-muted/20">
         <div className="flex items-center gap-2">
           {(() => {
-            const assignees = project.members.filter(m => m.role !== "owner");
+            const assignees = (project as any).assignedMembers ?? [];
             return assignees.length > 0 ? (
               <AvatarGroup>
-                {assignees.slice(0, 4).map((m) => (
+                {assignees.slice(0, 4).map((m: any) => (
                   <Avatar key={m.id} className="size-6 ring-2 ring-background dark:ring-card">
                     <AvatarImage src={m.avatar} alt={m.name} />
                     <AvatarFallback className="text-[9px]" colorSeed={m.id}>{m.initials}</AvatarFallback>

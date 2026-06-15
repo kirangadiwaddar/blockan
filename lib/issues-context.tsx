@@ -15,7 +15,6 @@ import {
   fetchIssues,
   updateIssue as dbUpdateIssue,
   deleteIssue as dbDeleteIssue,
-  logIssueActivity,
 } from "@/lib/supabase/db";
 import { createNotificationAction } from "@/lib/supabase/notification-actions";
 import { createClient } from "@/lib/supabase/client";
@@ -132,6 +131,15 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
           realtimeChannelRef.current.unsubscribe();
           realtimeChannelRef.current = null;
         }
+        const refreshIssue = async (issueId: string, projectUuid: string) => {
+          const slug = uuidToSlugRef.current[projectUuid];
+          const updatedIssues = await fetchIssues(projectUuid, slug);
+          const updated = updatedIssues.find((i) => i.id === issueId);
+          if (updated) {
+            setIssues((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+          }
+        };
+
         const channel = supabase
           .channel("issues-realtime")
           .on(
@@ -147,7 +155,6 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
                 const newIssue = newIssues.find((i) => i.id === payload.new.id);
                 if (newIssue) {
                   setIssues((prev) => {
-                    // Don't duplicate if it's already in the list (optimistic)
                     const exists = prev.some((i) => i.id === newIssue.id);
                     if (exists) return prev;
                     return [newIssue, ...prev];
@@ -155,29 +162,28 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
                 }
               } else if (payload.eventType === "UPDATE") {
                 const issueId = payload.new.id as string;
-                // Skip overwrite if we just updated this issue locally — our
-                // in-memory state (with all assignees) is more accurate than
-                // what the DB echo returns (DB only stores one assignee_id).
                 if (locallyUpdatedRef.current.has(issueId)) {
                   locallyUpdatedRef.current.delete(issueId);
                   return;
                 }
-                const projectUuid = payload.new.project_id as string;
-                const slug = uuidToSlugRef.current[projectUuid];
-                const updatedIssues = await fetchIssues(projectUuid, slug);
-                const updated = updatedIssues.find((i) => i.id === issueId);
-                if (updated) {
-                  setIssues((prev) => prev.map((i) => {
-                    if (i.id !== updated.id) return i;
-                    // Preserve local assignees if we have more than DB returned
-                    // (DB only stores assignee_id = first assignee)
-                    const assignees = i.assignees.length > updated.assignees.length
-                      ? i.assignees
-                      : updated.assignees;
-                    return { ...updated, assignees };
-                  }));
-                }
+                await refreshIssue(issueId, payload.new.project_id as string);
               }
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "issue_assignees" },
+            (payload) => {
+              const issueId = (payload.new as any)?.issue_id ?? (payload.old as any)?.issue_id;
+              if (!issueId) return;
+              setIssues((prev) => {
+                const found = prev.find((i) => i.id === issueId);
+                if (found) {
+                  const projectUuid = Object.entries(uuidToSlugRef.current).find(([, slug]) => slug === found.projectId)?.[0];
+                  if (projectUuid) refreshIssue(issueId, projectUuid);
+                }
+                return prev;
+              });
             }
           )
           .subscribe();
@@ -211,36 +217,22 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     setIssues((prev) => {
       const prev_ = prev.find((i) => i.id === updated.id);
       if (prev_) {
-        // Log activity for meaningful field changes
+        // Notify newly added assignees
         createClient().auth.getUser().then(({ data }) => {
           const actorId = data.user?.id;
           if (!actorId) return;
-          if (prev_.status !== updated.status) {
-            logIssueActivity({ issueId: updated.id, actorId, eventType: "status_changed", fromValue: prev_.status, toValue: updated.status }).catch(() => {});
-          }
-          if (prev_.priority !== updated.priority) {
-            logIssueActivity({ issueId: updated.id, actorId, eventType: "priority_changed", fromValue: prev_.priority, toValue: updated.priority }).catch(() => {});
-          }
-          const prevAssigneeIds = prev_.assignees.map((a) => a.id).sort().join(",");
-          const newAssigneeIds = updated.assignees.map((a) => a.id).sort().join(",");
-          if (prevAssigneeIds !== newAssigneeIds) {
-            const fromNames = prev_.assignees.map((a) => a.name).join(", ") || "Unassigned";
-            const toNames = updated.assignees.map((a) => a.name).join(", ") || "Unassigned";
-            logIssueActivity({ issueId: updated.id, actorId, eventType: "assignee_changed", fromValue: fromNames, toValue: toNames }).catch(() => {});
-            // Notify newly added assignees
-            const prevIds = new Set(prev_.assignees.map((a) => a.id));
-            updated.assignees.forEach((a) => {
-              if (!prevIds.has(a.id) && a.id !== actorId) {
-                createNotificationAction({
-                  userId: a.id,
-                  type: "assigned",
-                  title: `You were assigned to ${updated.code ?? updated.title}`,
-                  issueId: updated.id,
-                  actorId,
-                }).catch(() => {});
-              }
-            });
-          }
+          const prevIds = new Set(prev_.assignees.map((a) => a.id));
+          updated.assignees.forEach((a) => {
+            if (!prevIds.has(a.id) && a.id !== actorId) {
+              createNotificationAction({
+                userId: a.id,
+                type: "assigned",
+                title: `You were assigned to ${updated.code ?? updated.title}`,
+                issueId: updated.id,
+                actorId,
+              }).catch(() => {});
+            }
+          });
         });
       }
       return prev.map((i) => i.id === updated.id ? updated : i);
