@@ -309,8 +309,10 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <SidebarNav projects={typedProjects} selectedSlug={selectedSlug} onSelect={handleSelect} />
           </div>
-          <div className="px-3 py-3 border-t shrink-0">
-            <SidebarUserMenu />
+          <div className="shrink-0">
+            <div className="border-t px-3 pt-2 pb-5">
+              <SidebarUserMenu />
+            </div>
           </div>
         </div>
       </div>
@@ -338,9 +340,11 @@ const AppSidebar = ({ children }: { children: React.ReactNode }) => {
             </SimpleBar>
           </SidebarContent>
 
-          {/* User profile at bottom */}
-          <div className="px-3 pb-4 pt-2 border-t shrink-0">
-            <SidebarUserMenu />
+          {/* Install card + user profile at bottom */}
+          <div className="shrink-0">
+            <div className="border-t px-3 pt-2 pb-5">
+              <SidebarUserMenu />
+            </div>
           </div>
         </div>
       </Sidebar>
