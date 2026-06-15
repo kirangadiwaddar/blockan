@@ -2,12 +2,12 @@
 
 import { Project } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
-import { Trash2, MoreHorizontal, ArrowRight } from "lucide-react";
+import { Trash2, Pencil, MoreHorizontal, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-export function ProjectCard({ project, onDelete }: { project: Project; onDelete?: () => void }) {
+export function ProjectCard({ project, onDelete, onEdit }: { project: Project; onDelete?: () => void; onEdit?: () => void }) {
   const base = `/projects/${project.id}`;
   const router = useRouter();
 
@@ -55,6 +55,12 @@ export function ProjectCard({ project, onDelete }: { project: Project; onDelete?
                   }
                 />
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="cursor-pointer gap-2 text-xs"
+                    onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
+                  >
+                    <Pencil size={13} /> Edit
+                  </DropdownMenuItem>
                   <DropdownMenuItem
                     variant="destructive"
                     className="cursor-pointer gap-2 text-xs"
