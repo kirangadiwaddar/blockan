@@ -106,6 +106,19 @@ export async function verifyOtp(formData: FormData) {
 
     if (error) return { error: error.message };
 
+    // Check if this is a new user that needs onboarding
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      if (!profile?.full_name) {
+        redirect("/onboarding");
+      }
+    }
+
     redirect("/dashboard");
   } catch (error) {
     if (isRedirectError(error)) throw error;
