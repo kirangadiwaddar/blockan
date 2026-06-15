@@ -25,9 +25,11 @@ export function SiteHeader() {
     <>
       <CommandPalette />
       <ShortcutsDialog />
+
       <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="hidden md:flex -ml-1 h-8 w-8 cursor-pointer" />
+
           <button
             onClick={() => {
               const event = new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true });
@@ -42,6 +44,7 @@ export function SiteHeader() {
             </kbd>
           </button>
         </div>
+
         <div className="flex items-center gap-1">
           <ThemeToggle />
           <NotificationBell />
