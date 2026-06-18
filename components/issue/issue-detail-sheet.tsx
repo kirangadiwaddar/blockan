@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useComments } from "@/lib/comments-context";
 import { useProjects } from "@/lib/projects-context";
+import { useIssues } from "@/lib/issues-context";
 import { useUser } from "@/lib/supabase/user-context";
 import { Issue, IssuePriority, IssueType, Member } from "@/lib/types";
 import {
@@ -25,14 +26,15 @@ import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronDown, CalendarDays, User, Tag, Layers, Play,
   MessageSquare, Clock, X, Pencil, Check, Trash2,
-  Copy, ArrowRight,
+  Copy, ArrowRight, Activity, Plus,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { Lightbox } from "@/components/ui/lightbox";
 import { cn } from "@/lib/utils";
-import { updateIssueLabels } from "@/lib/supabase/db";
+import { fetchIssueActivities, type IssueActivity } from "@/lib/supabase/db";
 
 /* ─── Config ─────────────────────────────────────────────── */
 
@@ -156,9 +158,11 @@ interface Props {
 export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate }: Props) {
   const { getComments, addComment, loadComments, deleteComment } = useComments();
   const { projects, allMembers, projectBySlug, sprintsForProject } = useProjects();
+  const { issues: allIssues, updateIssue: ctxUpdateIssue } = useIssues();
   const { user, displayName, avatarUrl, initials } = useUser();
 
   const comments = issue ? getComments(issue.id) : [];
+  const [activities, setActivities] = useState<IssueActivity[]>([]);
   const [draft, setDraft] = useState("");
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -167,7 +171,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
   const [editingDesc, setEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState(issue?.description ?? "");
 
-  // Load comments when the sheet opens or the issue identity changes
+  // Load comments + activity when the sheet opens or the issue identity changes
   useEffect(() => {
     if (issue && open) {
       loadComments(issue.id);
@@ -175,6 +179,7 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
       setDescValue(issue.description ?? "");
       setEditingTitle(false);
       setEditingDesc(false);
+      fetchIssueActivities(issue.id).then(setActivities).catch(() => {});
     }
   }, [issue?.id, open, loadComments]);
 
@@ -192,6 +197,10 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
 
   const update = (patch: Partial<Issue>) => {
     onUpdate?.({ ...issue, ...patch, updatedAt: new Date().toISOString() });
+    // Reload activities after a short delay so the DB write lands first
+    setTimeout(() => {
+      fetchIssueActivities(issue.id).then(setActivities).catch(() => {});
+    }, 800);
   };
 
   const relativeTime = (iso: string) => {
@@ -241,6 +250,18 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
 
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  const activityLabel = (a: IssueActivity): string => {
+    switch (a.eventType) {
+      case "created":         return "created this issue";
+      case "status_changed":  return `changed status from "${a.fromValue}" to "${a.toValue}"`;
+      case "priority_changed":return `changed priority from ${a.fromValue} to ${a.toValue}`;
+      case "title_changed":   return `renamed this issue`;
+      case "assignee_changed":return a.toValue ? `set assignees to ${a.toValue}` : "removed all assignees";
+      case "sprint_changed":  return a.toValue ? `moved to sprint` : "removed from sprint";
+      default:                return "updated this issue";
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -368,6 +389,25 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
               <div className="rounded-xl border border-border overflow-hidden">
               <table className="w-full text-sm border-separate border-spacing-0">
                 <tbody>
+                  {/* Parent issue */}
+                  {issue.parentId && (() => {
+                    const parent = allIssues.find((i) => i.id === issue.parentId);
+                    if (!parent) return null;
+                    const ParentIcon = TYPES.find((t) => t.value === parent.type)?.icon ?? CheckSquare;
+                    const parentColor = TYPES.find((t) => t.value === parent.type)?.color ?? "text-green-500";
+                    return (
+                      <DetailRow icon={ArrowRight} label="Parent">
+                        <button
+                          onClick={() => { onUpdate?.({ ...issue }); onOpenChange(false); setTimeout(() => { onOpenChange(false); }, 50); }}
+                          className="flex items-center gap-1.5 px-1.5 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        >
+                          <ParentIcon size={12} className={cn("shrink-0", parentColor)} />
+                          <span className="font-mono text-xs">{parent.code}</span>
+                          <span className="truncate max-w-[160px]">{parent.title}</span>
+                        </button>
+                      </DetailRow>
+                    );
+                  })()}
                   {/* Status */}
                   <DetailRow icon={Layers} label="Status">
                     {readOnly ? (
@@ -625,6 +665,31 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                 <p className="text-[11px] text-muted-foreground">Updated {new Date(issue.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
               </div>
             </div>
+
+            {/* Activity log */}
+            {activities.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <Activity size={13} className="text-muted-foreground" />
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Activity</h3>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  {activities.map((a) => (
+                    <div key={a.id} className="flex items-start gap-2.5 py-1.5 group/act">
+                      <Avatar className="size-5 shrink-0 mt-0.5">
+                        <AvatarImage src={a.actorAvatar} alt={a.actorName} />
+                        <AvatarFallback className="text-[9px]" colorSeed={a.actorId ?? undefined}>{a.actorInitials}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 flex items-baseline gap-1.5 flex-wrap">
+                        <span className="text-xs font-semibold shrink-0">{a.actorName}</span>
+                        <span className="text-xs text-muted-foreground">{activityLabel(a)}</span>
+                        <span className="text-[10px] text-muted-foreground/60 shrink-0 ml-auto">{relativeTime(a.createdAt)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <Separator />
 

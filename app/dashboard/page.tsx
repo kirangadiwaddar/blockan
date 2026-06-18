@@ -458,12 +458,12 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col items-center gap-5 py-6 px-5">
-                <DonutChart data={priorityChart} total={myIssues.length} />
+                <DonutChart data={priorityChart} total={scopedIssues.length} />
 
                 {/* Legend rows */}
                 <div className="flex flex-col gap-2.5 w-full">
                   {priorityChart.map((entry) => {
-                    const pct = myIssues.length > 0 ? Math.round((entry.count / myIssues.length) * 100) : 0;
+                    const pct = scopedIssues.length > 0 ? Math.round((entry.count / scopedIssues.length) * 100) : 0;
                     const meta = PRIORITY_META[entry.name];
                     return (
                       <div key={entry.name} className="flex items-center gap-3">

@@ -48,7 +48,9 @@ import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronRight, Plus, CalendarDays,
   SquareStack, ChevronDown, ListTree, Trash2, MoreHorizontal,
+  Search, X, Users, Flame, AlertTriangle, Minus, TrendingDown, Check,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
@@ -57,13 +59,6 @@ import { cn } from "@/lib/utils";
 import { CreateIssueSheet } from "@/components/board/create-issue-sheet";
 
 /* ─── Config ──────────────────────────────────────────────── */
-
-const LABEL_PALETTE = ["#6366f1","#3b82f6","#22c55e","#f59e0b","#ef4444","#a855f7","#ec4899","#14b8a6","#f97316","#64748b"];
-function labelColor(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return LABEL_PALETTE[h % LABEL_PALETTE.length];
-}
 
 const priorityVariant: Record<IssuePriority, { variant?: "destructive" | "secondary" | "outline"; className?: string }> = {
   Critical: { variant: "destructive" },
@@ -233,18 +228,7 @@ function SprintGroup({
                         <span className="text-xs font-mono text-muted-foreground">{issue.code}</span>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium">{issue.title}</span>
-                          {(issue.labels ?? []).map((l) => (
-                            <span
-                              key={l}
-                              className="inline-flex items-center text-[10px] font-medium rounded-full px-1.5 py-0.5 text-white shrink-0"
-                              style={{ backgroundColor: labelColor(l) }}
-                            >
-                              {l}
-                            </span>
-                          ))}
-                        </div>
+                        <span className="text-sm font-medium">{issue.title}</span>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
@@ -337,6 +321,11 @@ function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailIssue, setDetailIssue] = useState<Issue | null>(null);
   const [detailOpen, setDetailOpen]   = useState(false);
+  const [search, setSearch]           = useState("");
+  const [filterPriority, setFilterPriority] = useState<string | null>(null);
+  const [filterType, setFilterType]         = useState<string | null>(null);
+  const [filterMemberId, setFilterMemberId] = useState<string | null>(null);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
 
   useEffect(() => {
     if (!issueIdParam || issueList.length === 0) return;
@@ -360,7 +349,20 @@ function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }
 
   const openDetail  = (issue: Issue) => { setDetailIssue(issue); setDetailOpen(true); };
 
-  const backlogIssues = issueList.filter((i) => !i.sprintId);
+  const members = project?.members ?? [];
+  const activeFilterCount = [filterPriority, filterType, filterMemberId].filter(Boolean).length;
+
+  const backlogIssues = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return issueList.filter((i) => {
+      if (i.sprintId) return false;
+      if (q && !i.title.toLowerCase().includes(q) && !i.code.toLowerCase().includes(q)) return false;
+      if (filterPriority && i.priority !== filterPriority) return false;
+      if (filterType && i.type !== filterType) return false;
+      if (filterMemberId && !i.assignees.some((a) => a.id === filterMemberId)) return false;
+      return true;
+    });
+  }, [issueList, search, filterPriority, filterType, filterMemberId]);
 
   if (!project && (projectsLoading || issuesLoading)) {
     return (
@@ -422,6 +424,178 @@ function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }
           >
             <SquareStack size={14} /> Board view
           </Link>
+        </div>
+
+        {/* ── Search + filters ── */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[180px] max-w-sm">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search issues…"
+              className="pl-8 h-8 text-sm"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Assignee */}
+          {members.length > 0 && (
+            <DropdownMenu onOpenChange={(open) => { if (!open) setAssigneeSearch(""); }}>
+              <DropdownMenuTrigger render={
+                <button className={cn(
+                  "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
+                  filterMemberId
+                    ? "bg-primary/10 dark:bg-white/10 border-primary/30 dark:border-white/30 text-primary dark:text-white"
+                    : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                )}>
+                  {filterMemberId ? (() => {
+                    const m = members.find((m) => m.id === filterMemberId);
+                    return m ? (
+                      <span className="flex items-center gap-1.5">
+                        <Avatar className="size-4">
+                          <AvatarImage src={m.avatar} alt={m.name} />
+                          <AvatarFallback className="text-[8px]" colorSeed={m.id}>{m.initials}</AvatarFallback>
+                        </Avatar>
+                        {m.name.split(" ")[0]}
+                      </span>
+                    ) : "Assignee";
+                  })() : <><Users size={11} className="shrink-0" />Assignee</>}
+                  <ChevronDown size={10} className="shrink-0" />
+                </button>
+              } />
+              <DropdownMenuContent align="start" className="p-1 w-52">
+                <div className="flex items-center gap-2 px-2 py-1.5 border-b border-border mb-1">
+                  <Search size={12} className="text-muted-foreground shrink-0" />
+                  <input
+                    autoFocus
+                    value={assigneeSearch}
+                    onChange={(e) => setAssigneeSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    placeholder="Search assignee…"
+                    className="flex-1 text-xs bg-transparent outline-none placeholder:text-muted-foreground"
+                  />
+                </div>
+                {filterMemberId && (
+                  <DropdownMenuItem onClick={() => setFilterMemberId(null)} className="gap-2 cursor-pointer text-muted-foreground">
+                    <X size={12} /> Clear filter
+                  </DropdownMenuItem>
+                )}
+                {members
+                  .filter((m) => m.name.toLowerCase().includes(assigneeSearch.toLowerCase()))
+                  .map((m) => {
+                    const active = filterMemberId === m.id;
+                    return (
+                      <DropdownMenuItem
+                        key={m.id}
+                        onClick={() => setFilterMemberId(active ? null : m.id)}
+                        className={cn("gap-2 cursor-pointer", active && "bg-muted text-foreground")}
+                      >
+                        <Avatar className="size-6 shrink-0">
+                          <AvatarImage src={m.avatar} alt={m.name} />
+                          <AvatarFallback className="text-[9px]" colorSeed={m.id}>{m.initials}</AvatarFallback>
+                        </Avatar>
+                        <span className="flex-1 truncate text-sm">{m.name}</span>
+                        {active && <Check size={12} className="shrink-0" />}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                {members.filter((m) => m.name.toLowerCase().includes(assigneeSearch.toLowerCase())).length === 0 && (
+                  <div className="px-2 py-3 text-xs text-muted-foreground text-center">No members found</div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Priority */}
+          <DropdownMenu>
+            <DropdownMenuTrigger render={
+              <button className={cn(
+                "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
+                filterPriority
+                  ? "bg-primary/10 dark:bg-white/10 border-primary/30 dark:border-white/30 text-primary dark:text-white"
+                  : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+              )}>
+                {filterPriority ?? "Priority"}
+                <ChevronDown size={10} className="shrink-0" />
+              </button>
+            } />
+            <DropdownMenuContent align="start" className="p-1 w-40">
+              {filterPriority && (
+                <DropdownMenuItem onClick={() => setFilterPriority(null)} className="gap-2 cursor-pointer text-muted-foreground">
+                  <X size={12} /> Clear
+                </DropdownMenuItem>
+              )}
+              {[
+                { value: "Critical", icon: Flame,         color: "text-destructive"      },
+                { value: "High",     icon: AlertTriangle, color: "text-orange-500"        },
+                { value: "Medium",   icon: Minus,         color: "text-yellow-500"        },
+                { value: "Low",      icon: TrendingDown,  color: "text-muted-foreground"  },
+              ].map(({ value, icon: Icon, color }) => (
+                <DropdownMenuItem
+                  key={value}
+                  onClick={() => setFilterPriority(filterPriority === value ? null : value)}
+                  className={cn("gap-2 cursor-pointer", filterPriority === value && "bg-muted text-foreground")}
+                >
+                  <Icon size={12} className={cn("shrink-0", color)} />
+                  {value}
+                  {filterPriority === value && <Check size={11} className="ml-auto" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Type */}
+          <DropdownMenu>
+            <DropdownMenuTrigger render={
+              <button className={cn(
+                "flex items-center gap-1 h-8 px-3 rounded-full border text-xs cursor-pointer transition-colors",
+                filterType
+                  ? "bg-primary/10 dark:bg-white/10 border-primary/30 dark:border-white/30 text-primary dark:text-white"
+                  : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+              )}>
+                {filterType ?? "Type"}
+                <ChevronDown size={10} className="shrink-0" />
+              </button>
+            } />
+            <DropdownMenuContent align="start" className="p-1 w-40">
+              {filterType && (
+                <DropdownMenuItem onClick={() => setFilterType(null)} className="gap-2 cursor-pointer text-muted-foreground">
+                  <X size={12} /> Clear
+                </DropdownMenuItem>
+              )}
+              {[
+                { value: "Bug",   icon: Bug,         color: "text-red-500"    },
+                { value: "Story", icon: BookOpen,    color: "text-blue-500"   },
+                { value: "Task",  icon: CheckSquare, color: "text-green-500"  },
+                { value: "Epic",  icon: Zap,         color: "text-purple-500" },
+              ].map(({ value, icon: Icon, color }) => (
+                <DropdownMenuItem
+                  key={value}
+                  onClick={() => setFilterType(filterType === value ? null : value)}
+                  className={cn("gap-2 cursor-pointer", filterType === value && "bg-muted text-foreground")}
+                >
+                  <Icon size={12} className={cn("shrink-0", filterType === value ? "text-primary" : color)} />
+                  {value}
+                  {filterType === value && <Check size={11} className="ml-auto" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Clear all filters */}
+          {(activeFilterCount > 0 || search) && (
+            <button
+              onClick={() => { setSearch(""); setFilterPriority(null); setFilterType(null); setFilterMemberId(null); }}
+              className="flex items-center gap-1 h-8 px-2 text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+            >
+              <X size={11} /> Clear all
+            </button>
+          )}
         </div>
 
         {/* ── Bulk action bar ── */}

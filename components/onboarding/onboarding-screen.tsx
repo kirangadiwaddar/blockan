@@ -1,6 +1,7 @@
 "use client";
 
-import { FolderKanban, Bell, GitBranch, CheckSquare, BarChart3, Users, ArrowRight, Zap } from "lucide-react";
+import { FolderKanban, Bell, GitBranch, CheckSquare, BarChart3, Users, ArrowRight, Zap, BookOpen } from "lucide-react";
+import Link from "next/link";
 
 const FEATURES = [
   { icon: GitBranch, label: "Sprints" },
@@ -136,6 +137,21 @@ export function OnboardingScreen({ displayName, onCreateProject }: OnboardingScr
             </div>
           </button>
         </div>
+
+        {/* Docs card */}
+        <Link
+          href="/docs"
+          className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-4 hover:border-emerald-400/60 transition-all duration-150 cursor-pointer"
+        >
+          <div className="size-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <BookOpen size={18} className="text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">Read the documentation</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">Learn how boards, sprints, workload views, and shortcuts work.</p>
+          </div>
+          <ArrowRight size={14} className="text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />
+        </Link>
 
         {/* How it works */}
         <div className="rounded-2xl border bg-muted/30 px-5 py-4">

@@ -15,6 +15,7 @@ import {
   fetchIssues,
   updateIssue as dbUpdateIssue,
   deleteIssue as dbDeleteIssue,
+  logIssueActivity,
 } from "@/lib/supabase/db";
 import { createNotificationAction } from "@/lib/supabase/notification-actions";
 import { createClient } from "@/lib/supabase/client";
@@ -217,22 +218,38 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     setIssues((prev) => {
       const prev_ = prev.find((i) => i.id === updated.id);
       if (prev_) {
-        // Notify newly added assignees
         createClient().auth.getUser().then(({ data }) => {
           const actorId = data.user?.id;
           if (!actorId) return;
-          const prevIds = new Set(prev_.assignees.map((a) => a.id));
-          updated.assignees.forEach((a) => {
-            if (!prevIds.has(a.id) && a.id !== actorId) {
-              createNotificationAction({
-                userId: a.id,
-                type: "assigned",
-                title: `You were assigned to ${updated.code ?? updated.title}`,
-                issueId: updated.id,
-                actorId,
-              }).catch(() => {});
-            }
-          });
+
+          // Log field changes as activity events
+          if (prev_.status !== updated.status)
+            logIssueActivity({ issueId: updated.id, actorId, eventType: "status_changed", fromValue: prev_.status, toValue: updated.status }).catch(() => {});
+          if (prev_.priority !== updated.priority)
+            logIssueActivity({ issueId: updated.id, actorId, eventType: "priority_changed", fromValue: prev_.priority, toValue: updated.priority }).catch(() => {});
+          if (prev_.title !== updated.title)
+            logIssueActivity({ issueId: updated.id, actorId, eventType: "title_changed", fromValue: prev_.title, toValue: updated.title }).catch(() => {});
+          if ((prev_.sprintId ?? null) !== (updated.sprintId ?? null))
+            logIssueActivity({ issueId: updated.id, actorId, eventType: "sprint_changed", fromValue: prev_.sprintId ?? null, toValue: updated.sprintId ?? null }).catch(() => {});
+
+          const prevAssigneeIds = prev_.assignees.map((a) => a.id).sort().join(",");
+          const nextAssigneeIds = updated.assignees.map((a) => a.id).sort().join(",");
+          if (prevAssigneeIds !== nextAssigneeIds) {
+            logIssueActivity({ issueId: updated.id, actorId, eventType: "assignee_changed", fromValue: prev_.assignees.map((a) => a.name).join(", ") || null, toValue: updated.assignees.map((a) => a.name).join(", ") || null }).catch(() => {});
+            // Notify newly added assignees
+            const prevIds = new Set(prev_.assignees.map((a) => a.id));
+            updated.assignees.forEach((a) => {
+              if (!prevIds.has(a.id) && a.id !== actorId) {
+                createNotificationAction({
+                  userId: a.id,
+                  type: "assigned",
+                  title: `You were assigned to ${updated.code ?? updated.title}`,
+                  issueId: updated.id,
+                  actorId,
+                }).catch(() => {});
+              }
+            });
+          }
         });
       }
       return prev.map((i) => i.id === updated.id ? updated : i);
@@ -250,7 +267,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       assigneeIds: updated.assignees.map((a) => a.id),
       points: updated.storyPoints,
       dueDate: updated.dueDate ?? null,
-      labels: updated.labels ?? [],
+      parentId: updated.parentId ?? null,
     }).catch(() => {});
   }, []);
 

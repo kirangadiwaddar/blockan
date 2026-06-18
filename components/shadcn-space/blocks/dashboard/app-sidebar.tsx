@@ -14,7 +14,7 @@ import {
 import {
   LucideIcon, Grid3x2, ListTree, SquareStack, CalendarDays, BookText,
   FolderRoot, ChartPie, Users, Settings, Menu, X,
-  LogOut, CircleUserRound, ChevronUp, ChevronDown, Check, FolderKanban, Search,
+  LogOut, CircleUserRound, ChevronUp, ChevronDown, Check, FolderKanban, Search, BarChart2, BookOpen,
 } from "lucide-react";
 import { SiteHeader } from "@/components/shadcn-space/blocks/dashboard/site-header";
 import SimpleBar from "simplebar-react";
@@ -46,11 +46,12 @@ const PAGES_NAV: NavItem[] = [
 
 function buildWorkspaceNav(slug: string): NavItem[] {
   return [
-    { title: "Board",    icon: Grid3x2,     href: `/projects/${slug}/board`    },
-    { title: "Backlog",  icon: ListTree,    href: `/projects/${slug}/backlog`  },
-    { title: "Sprints",  icon: SquareStack, href: `/projects/${slug}/sprints`  },
-    { title: "Timeline", icon: CalendarDays,href: `/projects/${slug}/timeline` },
-    { title: "Reports",  icon: BookText,    href: `/projects/${slug}/reports`  },
+    { title: "Board",     icon: Grid3x2,     href: `/projects/${slug}/board`    },
+    { title: "Backlog",   icon: ListTree,    href: `/projects/${slug}/backlog`  },
+    { title: "Sprints",   icon: SquareStack, href: `/projects/${slug}/sprints`  },
+    { title: "Timeline",  icon: CalendarDays,href: `/projects/${slug}/timeline` },
+    { title: "Workload",  icon: BarChart2,   href: `/projects/${slug}/workload` },
+    { title: "Reports",   icon: BookText,    href: `/projects/${slug}/reports`  },
   ];
 }
 
@@ -186,6 +187,9 @@ function SidebarUserMenu() {
           <DropdownMenuGroup>
             <DropdownMenuItem className="cursor-pointer gap-2 text-sm" onClick={() => router.push("/settings")}>
               <CircleUserRound size={14} className="text-muted-foreground" /> Profile & Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer gap-2 text-sm" onClick={() => router.push("/docs")}>
+              <BookOpen size={14} className="text-muted-foreground" /> Documentation
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <Separator className="my-1" />

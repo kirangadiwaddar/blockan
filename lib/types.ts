@@ -23,10 +23,10 @@ export type Issue = {
   assignees: Member[];
   reporter: Member;
   sprintId?: string;
+  parentId?: string;
   projectId: string;
   storyPoints?: number;
   dueDate?: string;
-  labels?: string[];
   createdAt: string;
   updatedAt: string;
 };

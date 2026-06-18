@@ -48,9 +48,11 @@ export function ShortcutsDialog() {
 
         <div className="px-5 py-4 flex flex-col gap-1.5">
           {SHORTCUTS.map((s) => (
-            <div key={s.key} className="flex items-center justify-between gap-4 py-1.5">
+            <div key={s.keys.join("+")} className="flex items-center justify-between gap-4 py-1.5">
               <span className="text-sm text-muted-foreground">{s.description}</span>
-              <Kbd>{s.key}</Kbd>
+              <div className="flex items-center gap-1">
+                {s.keys.map((k) => <Kbd key={k}>{k}</Kbd>)}
+              </div>
             </div>
           ))}
         </div>

@@ -319,6 +319,26 @@ export async function updateSprintStatus(
   return !error;
 }
 
+export async function updateSprint(
+  id: string,
+  data: { name?: string; goal?: string; startDate?: string; endDate?: string }
+): Promise<boolean> {
+  const supabase = createClient();
+  const patch: Record<string, string> = { updated_at: new Date().toISOString() };
+  if (data.name !== undefined)      patch.name       = data.name;
+  if (data.goal !== undefined)      patch.goal       = data.goal;
+  if (data.startDate !== undefined) patch.start_date = data.startDate;
+  if (data.endDate !== undefined)   patch.end_date   = data.endDate;
+  const { error } = await supabase.from("sprints").update(patch).eq("id", id);
+  return !error;
+}
+
+export async function deleteSprint(id: string): Promise<boolean> {
+  const supabase = createClient();
+  const { error } = await supabase.from("sprints").delete().eq("id", id);
+  return !error;
+}
+
 /* ─── Issues ────────────────────────────────────────────── */
 
 export async function fetchIssues(
@@ -366,7 +386,7 @@ export async function fetchIssues(
       sprintId: row.sprint_id ?? undefined,
       storyPoints: row.points || undefined,
       dueDate: row.due_date ?? undefined,
-      labels: (row.labels as string[]) ?? [],
+      parentId: row.parent_id ?? undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     } satisfies Issue;
@@ -376,6 +396,7 @@ export async function fetchIssues(
 export async function createIssue(data: {
   projectUuid: string;
   sprintId?: string;
+  parentId?: string;
   title: string;
   description?: string;
   type?: string;
@@ -386,7 +407,6 @@ export async function createIssue(data: {
   points?: number;
   dueDate?: string;
   code?: string;
-  labels?: string[];
 }): Promise<Issue | null> {
   const supabase = createClient();
   const { data: row, error } = await supabase
@@ -394,6 +414,7 @@ export async function createIssue(data: {
     .insert({
       project_id: data.projectUuid,
       sprint_id: data.sprintId ?? null,
+      parent_id: data.parentId ?? null,
       title: data.title,
       description: data.description ?? null,
       type: data.type ?? "Task",
@@ -404,7 +425,6 @@ export async function createIssue(data: {
       points: data.points ?? 0,
       due_date: data.dueDate ?? null,
       code: data.code ?? null,
-      labels: data.labels ?? [],
     })
     .select(`
       *,
@@ -451,7 +471,7 @@ export async function createIssue(data: {
     sprintId: row.sprint_id ?? undefined,
     storyPoints: row.points || undefined,
     dueDate: row.due_date ?? undefined,
-    labels: (row.labels as string[]) ?? [],
+    parentId: row.parent_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -466,11 +486,11 @@ export async function updateIssue(
     priority: string;
     type: string;
     sprintId: string | null;
+    parentId: string | null;
     assigneeId: string | null;
     assigneeIds: string[];
     points: number;
     dueDate: string | null;
-    labels: string[];
   }>
 ): Promise<boolean> {
   const supabase = createClient();
@@ -481,10 +501,10 @@ export async function updateIssue(
   if (patch.priority !== undefined)    dbPatch.priority = patch.priority;
   if (patch.type !== undefined)        dbPatch.type = patch.type;
   if (patch.sprintId !== undefined)    dbPatch.sprint_id = patch.sprintId;
+  if (patch.parentId !== undefined)    dbPatch.parent_id = patch.parentId;
   if (patch.assigneeId !== undefined)  dbPatch.assignee_id = patch.assigneeId;
   if (patch.points !== undefined)      dbPatch.points = patch.points;
   if (patch.dueDate !== undefined)     dbPatch.due_date = patch.dueDate;
-  if (patch.labels !== undefined)      dbPatch.labels = patch.labels;
 
   // Fetch current assignees + issue info BEFORE updating (needed for diff + project membership)
   const [prevAssigneesRes, issueRes, actorRes] = await Promise.all([
