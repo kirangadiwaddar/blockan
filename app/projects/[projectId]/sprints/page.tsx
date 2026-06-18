@@ -48,7 +48,8 @@ import {
 import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronRight, Plus, CalendarDays, MoreHorizontal,
-  Play, CheckCheck, Archive, Grid3x2, Flag,
+  Play, CheckCheck, Archive, Grid3x2, Flag, Search, X,
+  Pencil, Trash2, ArrowLeftRight, LayoutList, Flame, Target, Star,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -72,16 +73,6 @@ const statusDot: Record<string, string> = {
   "Reviewing": "bg-purple-500", "Completed": "bg-green-500",
 };
 
-const LABEL_COLORS = [
-  "#6366f1","#3b82f6","#22c55e","#f59e0b",
-  "#ef4444","#a855f7","#ec4899","#14b8a6","#f97316","#64748b",
-];
-function labelColor(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return LABEL_COLORS[h % LABEL_COLORS.length];
-}
-
 function fmt(d: string) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
@@ -94,19 +85,209 @@ function sprintStatusBadge(status: Sprint["status"]) {
   return <Badge variant="secondary" className="font-normal">Completed</Badge>;
 }
 
+/* ─── Add issues to sprint dialog ───────────────────────────── */
+
+function AddIssuesToSprintDialog({
+  sprint,
+  backlogIssues,
+  onAdd,
+}: {
+  sprint: Sprint;
+  backlogIssues: Issue[];
+  onAdd: (issues: Issue[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const filtered = backlogIssues.filter((i) =>
+    !query || i.title.toLowerCase().includes(query.toLowerCase()) || (i.code ?? "").toLowerCase().includes(query.toLowerCase())
+  );
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleAdd = () => {
+    onAdd(backlogIssues.filter((i) => selected.has(i.id)));
+    setSelected(new Set());
+    setQuery("");
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="gap-1.5 cursor-pointer h-7 text-xs text-muted-foreground hover:text-foreground"
+        onClick={() => setOpen(true)}
+      >
+        <Plus size={12} /> Add issues
+      </Button>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setSelected(new Set()); setQuery(""); } }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add issues to {sprint.name}</DialogTitle>
+            <DialogDescription>Select backlog issues to assign to this sprint.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3">
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search issues…"
+                className="pl-8 h-9 text-sm"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            {selected.size > 0 && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{selected.size} selected</span>
+                <button onClick={() => setSelected(new Set())} className="flex items-center gap-0.5 hover:text-foreground cursor-pointer">
+                  <X size={11} /> Clear
+                </button>
+              </div>
+            )}
+            <div className="flex flex-col gap-0.5 max-h-72 overflow-y-auto -mx-1 px-1">
+              {filtered.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  {backlogIssues.length === 0 ? "All issues are already in a sprint." : "No issues match your search."}
+                </p>
+              ) : (
+                filtered.map((issue) => {
+                  const TypeIcon = typeIcon[issue.type] ?? CheckSquare;
+                  const isSelected = selected.has(issue.id);
+                  return (
+                    <button
+                      key={issue.id}
+                      onClick={() => toggle(issue.id)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors cursor-pointer w-full",
+                        isSelected ? "bg-primary/10 text-foreground" : "hover:bg-muted"
+                      )}
+                    >
+                      <div className={cn("size-4 rounded border flex items-center justify-center shrink-0 transition-colors", isSelected ? "bg-primary border-primary" : "border-border")}>
+                        {isSelected && <CheckSquare size={10} className="text-primary-foreground" />}
+                      </div>
+                      <TypeIcon size={13} className={cn(typeColor[issue.type], "shrink-0")} />
+                      <span className="text-xs font-mono text-muted-foreground shrink-0">{issue.code}</span>
+                      <span className="text-sm truncate flex-1">{issue.title}</span>
+                      <span className={cn("size-2 rounded-full shrink-0", statusDot[issue.status] ?? "bg-muted-foreground")} />
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">Cancel</Button>
+            <Button onClick={handleAdd} disabled={selected.size === 0} className="cursor-pointer">
+              Add {selected.size > 0 ? `${selected.size} issue${selected.size > 1 ? "s" : ""}` : "issues"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/* ─── Edit sprint dialog ─────────────────────────────────────── */
+
+function EditSprintDialog({
+  sprint,
+  onSave,
+  trigger,
+}: {
+  sprint: Sprint;
+  onSave: (data: { name: string; goal: string; startDate: string; endDate: string }) => void;
+  trigger: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(sprint.name);
+  const [goal, setGoal] = useState(sprint.goal ?? "");
+  const [start, setStart] = useState(sprint.startDate);
+  const [end, setEnd] = useState(sprint.endDate);
+
+  const handleOpen = (v: boolean) => {
+    if (v) { setName(sprint.name); setGoal(sprint.goal ?? ""); setStart(sprint.startDate); setEnd(sprint.endDate); }
+    setOpen(v);
+  };
+
+  const submit = () => {
+    if (!name.trim() || !start || !end) return;
+    onSave({ name: name.trim(), goal: goal.trim(), startDate: start, endDate: end });
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <div onClick={() => setOpen(true)}>{trigger}</div>
+      <Dialog open={open} onOpenChange={handleOpen}>
+        <DialogContent className="sm:max-w-lg" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Edit Sprint</DialogTitle>
+            <DialogDescription>Update sprint details.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Sprint name <span className="text-destructive">*</span></label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Sprint name" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Goal</label>
+              <Input value={goal} onChange={(e) => setGoal(e.target.value)} placeholder="What will this sprint deliver?" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Start date <span className="text-destructive">*</span></label>
+              <DatePicker value={start} onChange={setStart} onClear={() => setStart("")} placeholder="Pick start date" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">End date <span className="text-destructive">*</span></label>
+              <DatePicker value={end} onChange={setEnd} onClear={() => setEnd("")} placeholder="Pick end date" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">Cancel</Button>
+            <Button onClick={submit} disabled={!name.trim() || !start || !end} className="cursor-pointer">Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 /* ─── Sprint card ───────────────────────────────────────────── */
 
 function SprintCard({
   sprint,
   issues,
+  backlogIssues,
+  allSprints,
   onIssueClick,
   onStatusChange,
+  onAddIssues,
+  onEdit,
+  onDelete,
+  onRemoveIssue,
+  onMoveIssue,
   sprintAdmin,
 }: {
   sprint: Sprint;
   issues: Issue[];
+  backlogIssues: Issue[];
+  allSprints: Sprint[];
   onIssueClick: (issue: Issue) => void;
   onStatusChange: (id: string, status: Sprint["status"]) => void;
+  onAddIssues: (sprintId: string, issues: Issue[]) => void;
+  onEdit: (id: string, data: { name: string; goal: string; startDate: string; endDate: string }) => void;
+  onDelete: (id: string) => void;
+  onRemoveIssue: (issue: Issue) => void;
+  onMoveIssue: (issue: Issue, targetSprintId: string) => void;
   sprintAdmin?: boolean;
 }) {
   const [open, setOpen] = useState(sprint.status === "active");
@@ -151,18 +332,12 @@ function SprintCard({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     {sprint.status === "planned" && (
-                      <DropdownMenuItem
-                        className="cursor-pointer"
-                        onClick={() => onStatusChange(sprint.id, "active")}
-                      >
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => onStatusChange(sprint.id, "active")}>
                         <Play size={13} /> Start sprint
                       </DropdownMenuItem>
                     )}
                     {sprint.status === "active" && (
-                      <DropdownMenuItem
-                        className="cursor-pointer"
-                        onClick={() => onStatusChange(sprint.id, "completed")}
-                      >
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => onStatusChange(sprint.id, "completed")}>
                         <CheckCheck size={13} /> Complete sprint
                       </DropdownMenuItem>
                     )}
@@ -171,6 +346,21 @@ function SprintCard({
                         <Archive size={13} /> Sprint completed
                       </DropdownMenuItem>
                     )}
+                    <EditSprintDialog
+                      sprint={sprint}
+                      onSave={(data) => onEdit(sprint.id, data)}
+                      trigger={
+                        <DropdownMenuItem className="cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                          <Pencil size={13} /> Edit sprint
+                        </DropdownMenuItem>
+                      }
+                    />
+                    <DropdownMenuItem
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                      onClick={() => { if (confirm(`Delete "${sprint.name}"? Issues will move to backlog.`)) onDelete(sprint.id); }}
+                    >
+                      <Trash2 size={13} /> Delete sprint
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -198,6 +388,7 @@ function SprintCard({
                   <TableHead className="w-28 hidden md:table-cell">Due</TableHead>
                   <TableHead className="w-14">Pts</TableHead>
                   <TableHead className="w-24">Assignees</TableHead>
+                  {sprintAdmin && <TableHead className="w-10" />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -218,7 +409,7 @@ function SprintCard({
                     return (
                       <TableRow
                         key={issue.id}
-                        className="cursor-pointer"
+                        className="cursor-pointer group"
                         onClick={() => onIssueClick(issue)}
                       >
                         <TableCell className="ps-4">
@@ -230,15 +421,6 @@ function SprintCard({
                         <TableCell>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium">{issue.title}</span>
-                            {(issue.labels ?? []).map((l) => (
-                              <span
-                                key={l}
-                                className="inline-flex items-center text-[10px] font-medium rounded-full px-1.5 py-0.5 text-white shrink-0"
-                                style={{ backgroundColor: labelColor(l) }}
-                              >
-                                {l}
-                              </span>
-                            ))}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -278,6 +460,25 @@ function SprintCard({
                             )}
                           </AvatarGroup>
                         </TableCell>
+                        {sprintAdmin && (
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger className="flex items-center justify-center size-6 rounded hover:bg-muted transition-colors cursor-pointer opacity-0 group-hover:opacity-100">
+                                <MoreHorizontal size={13} />
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem className="cursor-pointer" onClick={() => onRemoveIssue(issue)}>
+                                  <X size={12} /> Remove from sprint
+                                </DropdownMenuItem>
+                                {allSprints.filter((s) => s.id !== sprint.id && s.status !== "completed").map((s) => (
+                                  <DropdownMenuItem key={s.id} className="cursor-pointer" onClick={() => onMoveIssue(issue, s.id)}>
+                                    <ArrowLeftRight size={12} /> Move to {s.name}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })
@@ -285,6 +486,15 @@ function SprintCard({
               </TableBody>
             </Table>
           </CardContent>
+          {sprintAdmin && sprint.status !== "completed" && (
+            <CardFooter className="px-4 py-2 border-t">
+              <AddIssuesToSprintDialog
+                sprint={sprint}
+                backlogIssues={backlogIssues}
+                onAdd={(issues) => onAddIssues(sprint.id, issues)}
+              />
+            </CardFooter>
+          )}
         </CollapsibleContent>
       </Collapsible>
     </Card>
@@ -368,7 +578,7 @@ function CreateSprintCard({ projectId, onCreated }: { projectId: string; onCreat
 
 export default function SprintsPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
-  const { projects, sprintsForProject, addSprint: ctxAddSprint, updateSprintStatus: ctxUpdateSprintStatus, projectBySlug, loading: projectsLoading } = useProjects();
+  const { projects, sprintsForProject, addSprint: ctxAddSprint, updateSprintStatus: ctxUpdateSprintStatus, editSprint: ctxEditSprint, deleteSprint: ctxDeleteSprint, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allCtxIssues, updateIssue: ctxUpdateIssue, loading: issuesLoading } = useIssues();
 
   const project   = projectBySlug(projectId);
@@ -385,6 +595,27 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
   const updateSprintStatus = (id: string, status: Sprint["status"]) => ctxUpdateSprintStatus(id, status);
   const updateIssue = (updated: Issue) => ctxUpdateIssue(updated);
   const openDetail = (issue: Issue) => { setDetailIssue(issue); setDetailOpen(true); };
+
+  const addIssuesToSprint = (sprintId: string, issues: Issue[]) => {
+    issues.forEach((i) => ctxUpdateIssue({ ...i, sprintId, updatedAt: new Date().toISOString() }));
+  };
+
+  const removeIssueFromSprint = (issue: Issue) =>
+    ctxUpdateIssue({ ...issue, sprintId: undefined, updatedAt: new Date().toISOString() });
+
+  const moveIssueBetweenSprints = (issue: Issue, targetSprintId: string) =>
+    ctxUpdateIssue({ ...issue, sprintId: targetSprintId, updatedAt: new Date().toISOString() });
+
+  const handleDeleteSprint = (id: string) => {
+    // Move all issues in this sprint back to backlog first
+    issueList.filter((i) => i.sprintId === id).forEach((i) =>
+      ctxUpdateIssue({ ...i, sprintId: undefined, updatedAt: new Date().toISOString() })
+    );
+    ctxDeleteSprint(id);
+  };
+
+  // Issues with no sprint assigned = backlog
+  const backlogIssues = issueList.filter((i) => !i.sprintId);
 
   if (!project && (projectsLoading || issuesLoading)) {
     return (
@@ -456,19 +687,22 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
         </div>
 
         {/* ── Stats strip ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: "Total sprints", value: sprintList.length },
-            { label: "Active sprint", value: activeSprint?.name ?? "—" },
-            { label: "Issues done", value: `${doneCount} / ${issueList.length}` },
-            { label: "Points done", value: `${donePts} / ${totalPts} pts` },
-          ].map((stat) => (
-            <Card key={stat.label} className="rounded-xl">
-              <CardContent className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">{stat.label}</span>
-                <span className="text-lg font-semibold">{stat.value}</span>
-              </CardContent>
-            </Card>
+            { label: "Total sprints",  value: sprintList.length,                       icon: LayoutList,  color: "text-blue-500",   bg: "bg-blue-500/10"   },
+            { label: "Active sprint",  value: activeSprint?.name ?? "—",               icon: Star,        color: "text-violet-500", bg: "bg-violet-500/10" },
+            { label: "Issues done",    value: `${doneCount} / ${issueList.length}`,    icon: CheckCheck,  color: "text-green-500",  bg: "bg-green-500/10"  },
+            { label: "Points done",    value: `${donePts} / ${totalPts} pts`,          icon: Target,      color: "text-orange-500", bg: "bg-orange-500/10" },
+          ].map(({ label, value, icon: Icon, color, bg }) => (
+            <div key={label} className="flex items-center gap-3 rounded-xl border bg-card px-4 py-3">
+              <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 ${bg}`}>
+                <Icon size={15} className={color} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted-foreground leading-none mb-1 truncate">{label}</p>
+                <p className="text-base font-bold leading-none truncate">{value}</p>
+              </div>
+            </div>
           ))}
         </div>
 
@@ -481,8 +715,15 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
             <SprintCard
               sprint={activeSprint}
               issues={issueList.filter((i) => i.sprintId === activeSprint.id)}
+              backlogIssues={backlogIssues}
+              allSprints={sprintList}
               onIssueClick={openDetail}
               onStatusChange={updateSprintStatus}
+              onAddIssues={addIssuesToSprint}
+              onEdit={ctxEditSprint}
+              onDelete={handleDeleteSprint}
+              onRemoveIssue={removeIssueFromSprint}
+              onMoveIssue={moveIssueBetweenSprints}
               sprintAdmin={sprintAdmin}
             />
           </div>
@@ -497,8 +738,15 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
                 key={s.id}
                 sprint={s}
                 issues={issueList.filter((i) => i.sprintId === s.id)}
+                backlogIssues={backlogIssues}
+                allSprints={sprintList}
                 onIssueClick={openDetail}
                 onStatusChange={updateSprintStatus}
+                onAddIssues={addIssuesToSprint}
+                onEdit={ctxEditSprint}
+                onDelete={handleDeleteSprint}
+                onRemoveIssue={removeIssueFromSprint}
+                onMoveIssue={moveIssueBetweenSprints}
                 sprintAdmin={sprintAdmin}
               />
             ))}
@@ -525,8 +773,15 @@ export default function SprintsPage({ params }: { params: Promise<{ projectId: s
                 key={s.id}
                 sprint={s}
                 issues={issueList.filter((i) => i.sprintId === s.id)}
+                backlogIssues={backlogIssues}
+                allSprints={sprintList}
                 onIssueClick={openDetail}
                 onStatusChange={updateSprintStatus}
+                onAddIssues={addIssuesToSprint}
+                onEdit={ctxEditSprint}
+                onDelete={handleDeleteSprint}
+                onRemoveIssue={removeIssueFromSprint}
+                onMoveIssue={moveIssueBetweenSprints}
                 sprintAdmin={sprintAdmin}
               />
             ))}

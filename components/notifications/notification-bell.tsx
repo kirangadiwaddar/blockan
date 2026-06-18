@@ -143,14 +143,13 @@ export function NotificationBell() {
                 </span>
               )}
             </div>
-            {unread > 0 && (
-              <button
-                onClick={handleMarkAll}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                <CheckCheck size={12} /> Mark all read
-              </button>
-            )}
+            <button
+              onClick={handleMarkAll}
+              disabled={unread === 0}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <CheckCheck size={12} /> Mark all read
+            </button>
           </div>
 
           {/* List */}
@@ -264,22 +263,16 @@ export function NotificationBell() {
             )}
           </div>
 
-          {/* Footer — only shown when there are notifications */}
-          {notifications.length > 0 && (
-            <div className="border-t px-4 py-2.5 flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
-                {notifications.filter((n) => !n.read).length === 0
-                  ? "All notifications read"
-                  : `${notifications.filter((n) => !n.read).length} unread`}
-              </span>
-              <button
-                onClick={() => setOpen(false)}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          )}
+          {/* Footer */}
+          <div className="border-t p-3">
+            <Link
+              href="/notifications"
+              onClick={() => setOpen(false)}
+              className="flex items-center justify-center w-full gap-2 h-8 rounded-lg bg-muted hover:bg-muted/70 text-xs font-medium text-foreground transition-colors cursor-pointer"
+            >
+              View all notifications
+            </Link>
+          </div>
         </div>
       )}
     </div>

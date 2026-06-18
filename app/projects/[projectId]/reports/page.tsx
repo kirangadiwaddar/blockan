@@ -329,26 +329,35 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
           <Card className="rounded-2xl">
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <CardTitle className="text-sm">Issues by Status</CardTitle>
+              <span className="text-xs text-muted-foreground">{totalIssues} total</span>
             </CardHeader>
             <CardContent className="pb-4">
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%" cy="50%"
-                    innerRadius={58} outerRadius={88}
-                    paddingAngle={3} dataKey="value"
-                  >
-                    {statusData.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v, n) => [v, n]} contentStyle={chartTooltipStyle} />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="relative">
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%" cy="50%"
+                      innerRadius={62} outerRadius={76}
+                      paddingAngle={4} dataKey="value"
+                      startAngle={90} endAngle={-270}
+                      cornerRadius={6}
+                      stroke="none"
+                    >
+                      {statusData.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v, n) => [v, n]} contentStyle={chartTooltipStyle} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-bold leading-none">{totalIssues}</span>
+                  <span className="text-[11px] text-muted-foreground mt-0.5">issues</span>
+                </div>
+              </div>
               {/* status legend pills */}
               <div className="flex flex-wrap gap-2 mt-2">
                 {statusData.map((s) => (
@@ -401,14 +410,43 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
           <Card className="rounded-2xl">
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <CardTitle className="text-sm">Issues by Priority</CardTitle>
+              <span className="text-xs text-muted-foreground">{totalIssues} total</span>
             </CardHeader>
             <CardContent className="pb-4 flex flex-col gap-3">
+              {/* Thin donut chart */}
+              <div className="relative">
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie
+                      data={priorityData.filter((p) => p.count > 0)}
+                      cx="50%" cy="50%"
+                      innerRadius={62} outerRadius={76}
+                      paddingAngle={4} dataKey="count"
+                      startAngle={90} endAngle={-270}
+                      cornerRadius={6}
+                      stroke="none"
+                    >
+                      {priorityData.filter((p) => p.count > 0).map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v, n) => [v, n]} contentStyle={chartTooltipStyle} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-bold leading-none">{totalIssues}</span>
+                  <span className="text-[11px] text-muted-foreground mt-0.5">issues</span>
+                </div>
+              </div>
               {priorityData.map((p) => (
                 <div key={p.name} className="flex items-center gap-3">
-                  <span className="text-xs w-16 shrink-0 text-muted-foreground">{p.name}</span>
-                  <div className="flex-1 h-2.5 rounded-full bg-muted/50 overflow-hidden">
+                  <div className="flex items-center gap-1.5 w-20 shrink-0">
+                    <span className="size-2 rounded-full shrink-0" style={{ background: p.fill }} />
+                    <span className="text-xs text-muted-foreground">{p.name}</span>
+                  </div>
+                  <div className="flex-1 h-1.5 rounded-full bg-muted/50 overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
@@ -470,38 +508,36 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
               <CardDescription className="text-xs">Issue assignment and completion per member</CardDescription>
             </CardHeader>
             <CardContent className="pb-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {workload.map(({ member, total, completed, active, open }) => {
                   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
                   return (
-                    <div key={member.id} className="flex items-start gap-3 p-3.5 rounded-xl border bg-card">
-                      <Avatar className="size-7">
-                        <AvatarImage src={member.avatar} alt={member.name} />
-                        <AvatarFallback colorSeed={member.id}>{member.initials}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col gap-2 flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-sm font-medium truncate">{member.name}</span>
-                            <Badge variant="outline" className="text-xs font-normal w-fit mt-0.5 capitalize">{member.role}</Badge>
-                          </div>
-                          <div className="relative shrink-0">
-                            <RingChart value={pct} color={pct >= 75 ? "#22c55e" : pct >= 40 ? "#3b82f6" : "#94a3b8"} size={52} />
-                            <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{pct}%</span>
-                          </div>
+                    <div key={member.id} className="flex flex-col gap-2.5 p-3.5 rounded-xl border bg-card">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="size-7 shrink-0">
+                          <AvatarImage src={member.avatar} alt={member.name} />
+                          <AvatarFallback colorSeed={member.id}>{member.initials}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="text-sm font-medium truncate">{member.name}</span>
+                          <Badge variant="outline" className="text-xs font-normal w-fit mt-0.5 capitalize">{member.role}</Badge>
                         </div>
-                        <Progress value={pct} className="h-1.5" indicatorClassName={progressColor(pct)} />
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <span className="size-1.5 rounded-full bg-muted-foreground" /> {open} todo
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <span className="size-1.5 rounded-full bg-blue-500" /> {active} active
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <span className="size-1.5 rounded-full bg-emerald-500" /> {completed} done
-                          </span>
+                        <div className="relative shrink-0">
+                          <RingChart value={pct} color={pct >= 75 ? "#22c55e" : pct >= 40 ? "#3b82f6" : "#94a3b8"} size={52} />
+                          <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{pct}%</span>
                         </div>
+                      </div>
+                      <Progress value={pct} className="h-1.5" indicatorClassName={progressColor(pct)} />
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <span className="size-1.5 rounded-full bg-muted-foreground" /> {open} todo
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="size-1.5 rounded-full bg-blue-500" /> {active} active
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="size-1.5 rounded-full bg-emerald-500" /> {completed} done
+                        </span>
                       </div>
                     </div>
                   );

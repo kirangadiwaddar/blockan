@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Check, ChevronDown, Bug, BookOpen, CheckSquare, Zap, Flame, AlertTriangle, TrendingDown, Minus, Search, Users } from "lucide-react";
 import { Member } from "@/lib/types";
 import { Settings2, X } from "lucide-react";
@@ -105,6 +106,7 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
   const [filterPriority, setFilterPriority] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string | null>(null);
   const [assigneeSearch, setAssigneeSearch] = useState("");
+  const [search, setSearch] = useState("");
 
   const [createSheet, setCreateSheet] = useState<{ open: boolean; status: string }>({
     open: false, status: "Todo",
@@ -134,15 +136,16 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
 
   const visibleColumns = columns.filter((c) => c.visible);
   const columnIds = visibleColumns.map((c) => c.id);
-  const filteredIssues = useMemo(
-    () => issues.filter((i) => {
+  const filteredIssues = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return issues.filter((i) => {
+      if (q && !i.title.toLowerCase().includes(q) && !i.code.toLowerCase().includes(q)) return false;
       if (filterMemberId && !i.assignees.some((a) => a.id === filterMemberId)) return false;
       if (filterPriority && i.priority !== filterPriority) return false;
       if (filterType && i.type !== filterType) return false;
       return true;
-    }),
-    [issues, filterMemberId, filterPriority, filterType],
-  );
+    });
+  }, [issues, search, filterMemberId, filterPriority, filterType]);
   const getByStatus = (id: string) => filteredIssues.filter((i) => i.status === id);
 
   const handleDragStart = useCallback((e: DragStartEvent) => {
@@ -178,8 +181,23 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
     <>
       {/* ── Toolbar ── */}
       {(members.length > 0 || toolbarSlot) && (
-        <div className="flex items-center gap-10 mb-3">
-          {toolbarSlot && <div className="flex-1 min-w-0 max-w-2xl">{toolbarSlot}</div>}
+        <div className="flex items-center gap-3 mb-3 flex-wrap">
+          {toolbarSlot && <div className="min-w-0">{toolbarSlot}</div>}
+          {/* Search */}
+          <div className="relative w-48">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search issues…"
+              className="pl-7 h-8 text-xs"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer">
+                <X size={11} />
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-2 ml-auto shrink-0">
             {members.length > 0 && (
               <>

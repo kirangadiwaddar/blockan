@@ -18,6 +18,8 @@ import {
   createProject as dbCreateProject,
   createSprint as dbCreateSprint,
   updateSprintStatus as dbUpdateSprintStatus,
+  updateSprint as dbUpdateSprint,
+  deleteSprint as dbDeleteSprint,
   deleteProject as dbDeleteProject,
   updateProject as dbUpdateProject,
   removeMemberFromProject as dbRemoveMember,
@@ -36,6 +38,8 @@ type ProjectsCtx = {
   updateProject: (slug: string, data: { name?: string; description?: string; color?: string }) => Promise<void>;
   addSprint: (s: Sprint, projectSlug: string) => Promise<void>;
   updateSprintStatus: (id: string, status: Sprint["status"]) => void;
+  editSprint: (id: string, data: { name?: string; goal?: string; startDate?: string; endDate?: string }) => void;
+  deleteSprint: (id: string) => void;
   sprintsForProject: (projectId: string) => Sprint[];
   projectBySlug: (slug: string) => Project | undefined;
   uuidForSlug: (slug: string) => string | undefined;
@@ -54,6 +58,8 @@ const Ctx = createContext<ProjectsCtx>({
   updateProject: async () => {},
   addSprint: async () => {},
   updateSprintStatus: () => {},
+  editSprint: () => {},
+  deleteSprint: () => {},
   sprintsForProject: (id) => mockSprints.filter((s) => s.projectId === id),
   projectBySlug: (slug) => mockProjects.find((p) => p.id === slug),
   uuidForSlug: () => undefined,
@@ -242,6 +248,22 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     dbUpdateSprintStatus(id, status).catch(() => {});
   }, []);
 
+  const editSprint = useCallback((id: string, data: { name?: string; goal?: string; startDate?: string; endDate?: string }) => {
+    setSprints((prev) => prev.map((s) => s.id === id ? {
+      ...s,
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.goal !== undefined && { goal: data.goal }),
+      ...(data.startDate !== undefined && { startDate: data.startDate }),
+      ...(data.endDate !== undefined && { endDate: data.endDate }),
+    } : s));
+    dbUpdateSprint(id, data).catch(() => {});
+  }, []);
+
+  const deleteSprint = useCallback((id: string) => {
+    setSprints((prev) => prev.filter((s) => s.id !== id));
+    dbDeleteSprint(id).catch(() => {});
+  }, []);
+
   const sprintsForProject = useCallback(
     (projectId: string) => sprints.filter((s) => s.projectId === projectId || s.projectId === uuidMap[projectId]),
     [sprints, uuidMap]
@@ -289,6 +311,8 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       updateProject,
       addSprint,
       updateSprintStatus,
+      editSprint,
+      deleteSprint,
       sprintsForProject,
       projectBySlug,
       uuidForSlug,
