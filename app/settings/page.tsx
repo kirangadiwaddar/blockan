@@ -16,7 +16,7 @@ import { useTheme, ACCENT_COLORS } from "@/components/providers";
 import { useUser } from "@/lib/supabase/user-context";
 import { enrollTotp, verifyAndActivateTotp, getMfaFactors, unenrollTotp } from "@/lib/supabase/mfa-actions";
 import {
-  Moon, Sun, Bell, Shield, Palette, User, Trash2, Upload,
+  Bell, Shield, Palette, User, Trash2, Upload,
   ShieldCheck, ShieldOff, Loader2, CheckCircle2, AlertCircle,
   Download, Eye, EyeOff, Check, KeyRound, FolderOpen, ListChecks, Activity, Database,
 } from "lucide-react";
@@ -71,7 +71,7 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 
 /* ─── Page ───────────────────────────────────────────────── */
 export default function SettingsPage() {
-  const { theme, toggle: toggleTheme, accentId, setAccent } = useTheme();
+  const { accentId, setAccent } = useTheme();
   const { displayName, email: userEmail, avatarUrl, initials, bio: profileBio, user, refreshProfile } = useUser();
   const { projects } = useProjects();
   const { issues } = useIssues();
@@ -274,6 +274,33 @@ export default function SettingsPage() {
     }
   };
 
+  /* ── Reset all data ── */
+  const [resetting, setResetting] = useState(false);
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
+  const [resetConfirm, setResetConfirm] = useState("");
+  const handleReset = async () => {
+    if (resetConfirm !== "RESET") {
+      flashMsg(setResetMsg, 'Type "RESET" to confirm');
+      return;
+    }
+    setResetting(true);
+    setResetMsg(null);
+    try {
+      const res = await fetch("/api/reset", { method: "POST" });
+      const json = await res.json();
+      if (json.ok) {
+        flashMsg(setResetMsg, "All data cleared. Signing out…");
+        setTimeout(() => { createClient().auth.signOut().then(() => { window.location.href = "/login"; }); }, 1500);
+      } else {
+        flashMsg(setResetMsg, json.error ?? "Reset failed");
+      }
+    } catch {
+      flashMsg(setResetMsg, "Reset failed — check console");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   /* ── Danger Zone ── */
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteMsg, setDeleteMsg] = useState<string | null>(null);
@@ -296,7 +323,7 @@ export default function SettingsPage() {
       a.href = url; a.download = `blockan-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
+    } catch {
       flashMsg(setDeleteMsg, "Export failed");
     } finally {
       setExporting(false);
@@ -716,10 +743,10 @@ export default function SettingsPage() {
                               </InputOTPGroup>
                             </InputOTP>
                             <div className="flex gap-2">
-                              <Button size="sm" disabled={isMfaPending || mfaCode.length < 6} onClick={confirmEnroll} className="cursor-pointer gap-1.5">
-                                {isMfaPending ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />} Activate
+                              <Button disabled={isMfaPending || mfaCode.length < 6} onClick={confirmEnroll} className="cursor-pointer gap-1.5">
+                                {isMfaPending ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />} Activate
                               </Button>
-                              <Button size="sm" variant="ghost" onClick={() => { setMfaStep("idle"); setMfaCode(""); setMfaError(null); }} className="cursor-pointer">
+                              <Button variant="ghost" onClick={() => { setMfaStep("idle"); setMfaCode(""); setMfaError(null); }} className="cursor-pointer">
                                 Cancel
                               </Button>
                             </div>
@@ -783,6 +810,41 @@ export default function SettingsPage() {
                     >
                       {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
                       {exporting ? "Exporting…" : "Export"}
+                    </Button>
+                  </div>
+
+                  {/* Reset all data */}
+                  <div className="flex flex-col gap-4 px-6 py-5">
+                    <div>
+                      <p className="text-sm font-medium text-destructive flex items-center gap-2">
+                        <Trash2 size={14} /> Reset all data
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Permanently deletes all users, projects, issues, sprints, and comments. Wipes the database completely and signs you out. Cannot be undone.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-2 max-w-sm">
+                      <Label htmlFor="reset-confirm" className="text-xs text-muted-foreground">
+                        Type <span className="font-mono font-semibold text-destructive">RESET</span> to confirm
+                      </Label>
+                      <Input
+                        id="reset-confirm"
+                        value={resetConfirm}
+                        onChange={(e) => setResetConfirm(e.target.value)}
+                        placeholder="RESET"
+                        className="border-destructive/40 focus-visible:ring-destructive/40"
+                      />
+                    </div>
+                    {resetMsg && <StatusMsg msg={resetMsg} />}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="cursor-pointer gap-2 w-fit"
+                      disabled={resetting || resetConfirm !== "RESET"}
+                      onClick={handleReset}
+                    >
+                      {resetting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                      {resetting ? "Resetting…" : "Reset all data"}
                     </Button>
                   </div>
 

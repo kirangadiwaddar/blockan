@@ -78,7 +78,7 @@ function isWeekend(d: Date) { return d.getDay() === 0 || d.getDay() === 6; }
 
 export default function TimelinePage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
-  const { projects, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
+  const { sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allCtxIssues, updateIssue: ctxUpdateIssue, loading: issuesLoading } = useIssues();
 
   const project   = projectBySlug(projectId);

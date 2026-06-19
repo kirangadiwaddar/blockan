@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useComments } from "@/lib/comments-context";
 import { useProjects } from "@/lib/projects-context";
 import { useIssues } from "@/lib/issues-context";
@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import {
   Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount,
 } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem,
@@ -26,9 +25,8 @@ import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronDown, CalendarDays, User, Tag, Layers, Play,
   MessageSquare, Clock, X, Pencil, Check, Trash2,
-  Copy, ArrowRight, Activity, Plus,
+  Copy, ArrowRight, Activity,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -158,12 +156,11 @@ interface Props {
 export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate }: Props) {
   const { getComments, addComment, loadComments, deleteComment } = useComments();
   const { projects, allMembers, projectBySlug, sprintsForProject } = useProjects();
-  const { issues: allIssues, updateIssue: ctxUpdateIssue } = useIssues();
+  const { issues: allIssues } = useIssues();
   const { user, displayName, avatarUrl, initials } = useUser();
 
   const comments = issue ? getComments(issue.id) : [];
   const [activities, setActivities] = useState<IssueActivity[]>([]);
-  const [draft, setDraft] = useState("");
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -247,9 +244,6 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
       });
     }
   };
-
-  const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   const activityLabel = (a: IssueActivity): string => {
     switch (a.eventType) {
@@ -354,13 +348,13 @@ export function IssueDetailSheet({ issue, open, readOnly, onOpenChange, onUpdate
                     className="resize-none text-sm"
                   />
                   <div className="flex gap-2">
-                    <Button size="sm" className="cursor-pointer h-7 text-xs" onClick={() => {
+                    <Button size="sm" className="cursor-pointer" onClick={() => {
                       setEditingDesc(false);
                       update({ description: descValue.trim() || undefined });
                     }}>
-                      <Check size={11} /> Save
+                      <Check size={12} /> Save
                     </Button>
-                    <Button size="sm" variant="ghost" className="cursor-pointer h-7 text-xs" onClick={() => {
+                    <Button size="sm" variant="ghost" className="cursor-pointer" onClick={() => {
                       setEditingDesc(false);
                       setDescValue(issue.description ?? "");
                     }}>

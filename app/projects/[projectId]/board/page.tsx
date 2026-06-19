@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, FileDown, UserPlus } from "lucide-react";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { type Issue } from "@/lib/types";
 import { useProjectRole, canEditProject } from "@/lib/projects-context";
@@ -58,7 +57,7 @@ function downloadXlsx(issues: Issue[], filename: string, colKeys: string[]) {
 function BoardPageContent({ projectId }: { projectId: string }) {
   const searchParams = useSearchParams();
   const defaultOpenIssueId = searchParams.get("issue") ?? undefined;
-  const { projects, allMembers, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
+  const { allMembers, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allIssues, loading: issuesLoading } = useIssues();
   const role = useProjectRole(projectId);
   const readOnly = !canEditProject(role);
@@ -106,7 +105,6 @@ function BoardPageContent({ projectId }: { projectId: string }) {
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-  const key = project?.key ?? "issues";
   const projectName = project?.name ?? "Issues";
 
   const handleExport = (filename: string, statuses: string[]) => {

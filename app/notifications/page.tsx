@@ -113,8 +113,8 @@ export default function NotificationsPage() {
             )}
           </div>
           {unread > 0 && (
-            <Button variant="outline" size="sm" className="gap-1.5 cursor-pointer" onClick={handleMarkAll}>
-              <CheckCheck size={13} /> Mark all read
+            <Button variant="outline" className="gap-1.5 cursor-pointer" onClick={handleMarkAll}>
+              <CheckCheck size={14} /> Mark all read
             </Button>
           )}
         </div>

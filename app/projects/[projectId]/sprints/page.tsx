@@ -49,7 +49,7 @@ import {
   Bug, BookOpen, CheckSquare, Zap,
   ChevronRight, Plus, CalendarDays, MoreHorizontal,
   Play, CheckCheck, Archive, Grid3x2, Flag, Search, X,
-  Pencil, Trash2, ArrowLeftRight, LayoutList, Flame, Target, Star,
+  Pencil, Trash2, ArrowLeftRight, LayoutList, Target, Star,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -578,7 +578,7 @@ function CreateSprintCard({ projectId, onCreated }: { projectId: string; onCreat
 
 export default function SprintsPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
-  const { projects, sprintsForProject, addSprint: ctxAddSprint, updateSprintStatus: ctxUpdateSprintStatus, editSprint: ctxEditSprint, deleteSprint: ctxDeleteSprint, projectBySlug, loading: projectsLoading } = useProjects();
+  const { sprintsForProject, addSprint: ctxAddSprint, updateSprintStatus: ctxUpdateSprintStatus, editSprint: ctxEditSprint, deleteSprint: ctxDeleteSprint, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allCtxIssues, updateIssue: ctxUpdateIssue, loading: issuesLoading } = useIssues();
 
   const project   = projectBySlug(projectId);

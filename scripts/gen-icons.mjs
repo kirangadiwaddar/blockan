@@ -40,7 +40,7 @@ function drawIcon(size) {
 }
 
 try {
-  const { createCanvas: _ } = await import("canvas");
+  await import("canvas");
   for (const size of [192, 512]) {
     const buf = drawIcon(size);
     fs.writeFileSync(path.join(publicDir, `icon-${size}.png`), buf);

@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { X, ZoomIn, ZoomOut, RotateCw, Download } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface LightboxProps {
   src: string;

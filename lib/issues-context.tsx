@@ -25,6 +25,7 @@ type IssuesCtx = {
   loading: boolean;
   updateIssue: (updated: Issue) => void;
   addIssue: (issue: Issue) => void;
+  replaceIssue: (tempId: string, real: Issue) => void;
   deleteIssue: (id: string) => void;
   refreshIssues: () => Promise<void>;
 };
@@ -34,6 +35,7 @@ const Ctx = createContext<IssuesCtx>({
   loading: false,
   updateIssue: () => {},
   addIssue: () => {},
+  replaceIssue: () => {},
   deleteIssue: () => {},
   refreshIssues: async () => {},
 });
@@ -275,13 +277,17 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
     setIssues((prev) => [issue, ...prev]);
   }, []);
 
+  const replaceIssue = useCallback((tempId: string, real: Issue) => {
+    setIssues((prev) => prev.map((i) => (i.id === tempId ? real : i)));
+  }, []);
+
   const deleteIssue = useCallback((id: string) => {
     setIssues((prev) => prev.filter((i) => i.id !== id));
     dbDeleteIssue(id).catch(() => {});
   }, []);
 
   return (
-    <Ctx.Provider value={{ issues, loading, updateIssue, addIssue, deleteIssue, refreshIssues: loadIssues }}>
+    <Ctx.Provider value={{ issues, loading, updateIssue, addIssue, replaceIssue, deleteIssue, refreshIssues: loadIssues }}>
       {children}
     </Ctx.Provider>
   );

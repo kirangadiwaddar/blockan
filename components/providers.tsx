@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { IssuesProvider } from "@/lib/issues-context";
 import { CommentsProvider } from "@/lib/comments-context";
 import { UserProvider } from "@/lib/supabase/user-context";

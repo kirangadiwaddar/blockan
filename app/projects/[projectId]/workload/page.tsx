@@ -9,7 +9,6 @@ import AppSidebar from "@/components/shadcn-space/blocks/dashboard/app-sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -119,6 +118,9 @@ function IssueRow({ issue, onOpen }: { issue: Issue; onOpen: (i: Issue) => void 
 
 /* ─── Member modal ─────────────────────────────────────────── */
 
+const STATUSES = ["Todo", "In Progress", "Reviewing", "Completed"];
+const PRIORITIES = ["Critical", "High", "Medium", "Low", "No Priority"];
+
 function MemberModal({
   entry,
   open,
@@ -131,21 +133,24 @@ function MemberModal({
   onOpenIssue: (i: Issue) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     if (!entry) return [];
+    let issues = entry.issues;
     const q = search.trim().toLowerCase();
-    if (!q) return entry.issues;
-    return entry.issues.filter(
-      (i) => i.title.toLowerCase().includes(q) || i.code.toLowerCase().includes(q),
-    );
-  }, [entry, search]);
+    if (q) issues = issues.filter((i) => i.title.toLowerCase().includes(q) || i.code.toLowerCase().includes(q));
+    if (statusFilter) issues = issues.filter((i) => i.status === statusFilter);
+    if (priorityFilter) issues = issues.filter((i) => i.priority === priorityFilter);
+    return issues;
+  }, [entry, search, statusFilter, priorityFilter]);
 
   const done = entry ? entry.issues.filter((i) => i.status === "Completed").length : 0;
   const name = entry?.kind === "member" ? entry.member.name : "Unassigned";
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) { onClose(); setSearch(""); } }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { onClose(); setSearch(""); setStatusFilter(null); setPriorityFilter(null); } }}>
       <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden rounded-2xl">
         <DialogHeader className="border-b px-5 py-4">
           <div className="flex items-center gap-3">
@@ -170,8 +175,9 @@ function MemberModal({
           </div>
         </DialogHeader>
 
-        <div className="px-4 py-3 border-b bg-muted/20">
-          <div className="relative">
+        <div className="px-4 py-3 border-b bg-muted/20 flex items-center gap-3">
+          {/* Search — left */}
+          <div className="relative flex-1 min-w-0">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Search issues…"
@@ -180,6 +186,46 @@ function MemberModal({
               className="pl-8 h-8 text-sm bg-background"
               autoFocus
             />
+          </div>
+
+          {/* Filters — right */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Status filter */}
+            <select
+              value={statusFilter ?? ""}
+              onChange={(e) => setStatusFilter(e.target.value || null)}
+              className={cn(
+                "h-8 rounded-md border px-2 text-xs bg-background cursor-pointer outline-none focus:ring-1 focus:ring-ring",
+                statusFilter ? "border-primary text-primary font-medium" : "text-muted-foreground"
+              )}
+            >
+              <option value="">Status</option>
+              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+
+            {/* Priority filter */}
+            <select
+              value={priorityFilter ?? ""}
+              onChange={(e) => setPriorityFilter(e.target.value || null)}
+              className={cn(
+                "h-8 rounded-md border px-2 text-xs bg-background cursor-pointer outline-none focus:ring-1 focus:ring-ring",
+                priorityFilter ? "border-primary text-primary font-medium" : "text-muted-foreground"
+              )}
+            >
+              <option value="">Priority</option>
+              {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+
+            {/* Clear filters */}
+            {(statusFilter || priorityFilter) && (
+              <button
+                onClick={() => { setStatusFilter(null); setPriorityFilter(null); }}
+                className="h-8 w-8 flex items-center justify-center rounded-md border bg-background hover:bg-muted transition-colors text-muted-foreground hover:text-foreground cursor-pointer"
+                title="Clear filters"
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
         </div>
 

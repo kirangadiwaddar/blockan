@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 const PEOPLE = [
   { name: "Ava Thompson",   email: "ava.thompson@blockan.demo",   img: "https://i.pravatar.cc/256?img=47" },
@@ -52,7 +54,26 @@ const ISSUE_TITLES = [
 function rand<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 function randN(n: number) { return Math.floor(Math.random() * n); }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  // Only allow in non-production, or when a valid seed secret is provided
+  const isProduction = process.env.NODE_ENV === "production";
+  const seedSecret = process.env.SEED_SECRET;
+  const authHeader = request.headers.get("x-seed-secret");
+
+  if (isProduction && (!seedSecret || authHeader !== seedSecret)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Require an authenticated session
+  const cookieStore = await cookies();
+  const supabaseAuth = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+  );
+  const { data: { user } } = await supabaseAuth.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const url  = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

@@ -26,7 +26,6 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { resendInvite, cancelPendingInviteAction, generateInviteLink, fetchPendingInvitesAdmin } from "@/lib/supabase/invite-actions";
-import { cn } from "@/lib/utils";
 
 const ROLES = ["Owner", "Admin", "Member", "Viewer", "Guest"] as const;
 type Role = (typeof ROLES)[number];
@@ -228,8 +227,8 @@ export default function TeamPage() {
               {teamData.length} members across {projects.length} projects
             </p>
           </div>
-          <Button size="sm" className="cursor-pointer gap-1.5" onClick={() => setInviteOpen(true)}>
-            <UserPlus size={13} /> Invite Member
+          <Button className="cursor-pointer gap-1.5" onClick={() => setInviteOpen(true)}>
+            <UserPlus size={14} /> Invite Member
           </Button>
         </div>
 

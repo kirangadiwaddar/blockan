@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -48,7 +48,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Authenticated user on any protected route — enforce onboarding completion
-  if (user && !isAuthRoute && pathname !== "/onboarding" && !pathname.startsWith("/auth")) {
+  if (user && !isAuthRoute && pathname !== "/onboarding" && !pathname.startsWith("/auth") && !pathname.startsWith("/docs")) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name, is_pending")

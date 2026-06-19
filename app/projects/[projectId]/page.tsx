@@ -62,7 +62,7 @@ function fmt(d: string) {
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
-  const { projects, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
+  const { sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allCtxIssues, loading: issuesLoading } = useIssues();
 
   const project = projectBySlug(projectId);
@@ -163,8 +163,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
               )}
             </AvatarGroup>
             {isAdmin && (
-              <Button size="sm" variant="outline" className="gap-1.5 cursor-pointer" onClick={() => setInviteOpen(true)}>
-                <UserPlus size={13} /> Invite
+              <Button variant="outline" className="gap-1.5 cursor-pointer" onClick={() => setInviteOpen(true)}>
+                <UserPlus size={14} /> Invite
               </Button>
             )}
           </div>

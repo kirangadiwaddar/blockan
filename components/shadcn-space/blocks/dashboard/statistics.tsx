@@ -5,9 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   ArrowRight,
   Bug,
-  CalendarDays,
   LucideIcon,
-  ShoppingBag,
   SquareStack,
 } from "lucide-react";
 import { cn } from "@/lib/utils";

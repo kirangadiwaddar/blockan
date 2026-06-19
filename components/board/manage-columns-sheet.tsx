@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { GripVertical, Trash2, Plus, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";

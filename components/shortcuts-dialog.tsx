@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { SHORTCUTS } from "@/hooks/use-keyboard-shortcuts";
 import { Keyboard, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
