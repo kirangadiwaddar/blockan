@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Issue, IssueStatus, IssuePriority, IssueType, Member } from "@/lib/types";
 import { useUser } from "@/lib/supabase/user-context";
 import { useProjects } from "@/lib/projects-context";
+import { useIssues } from "@/lib/issues-context";
 import { createIssue as dbCreateIssue } from "@/lib/supabase/db";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter,
@@ -14,14 +15,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { MemberPicker } from "@/components/ui/member-picker";
 import {
   Bug, BookOpen, CheckSquare, Zap,
-  ChevronDown, Users, X, Play,
+  ChevronDown, X, Play,
 } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
@@ -90,8 +91,9 @@ function SelectTrigger({ children, className, ...props }: { children: React.Reac
 /* ─── Component ─────────────────────────────────────────── */
 
 export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprintId, onOpenChange, onCreated }: Props) {
-  const { displayName, email, avatarUrl, initials, user } = useUser();
+  const { displayName, avatarUrl, initials, user } = useUser();
   const { projects, allMembers, projectBySlug, uuidForSlug, sprintsForProject } = useProjects();
+  const { replaceIssue } = useIssues();
 
   // Determine project + sprints
   const project = projectId ? projectBySlug(projectId) : projects[0];
@@ -154,7 +156,7 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
       priority,
       assignees,
       reporter,
-      projectId: uuid ?? slug,
+      projectId: slug,
       sprintId: sprintId || undefined,
       storyPoints: points ? parseInt(points) : undefined,
       dueDate: dueDate || undefined,
@@ -165,24 +167,35 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
     onCreated(optimistic);
     onOpenChange(false);
 
-    // Persist to Supabase in background (only if UUID available)
-    if (uuid && user) {
-      setCreating(true);
-      dbCreateIssue({
-        projectUuid: uuid,
-        sprintId: sprintId || undefined,
-        title: optimistic.title,
-        description: optimistic.description,
-        type,
-        status,
-        priority,
-        assigneeId: assignees[0]?.id,
-        reporterId: user.id,
-        points: points ? parseInt(points) : undefined,
-        dueDate: dueDate || undefined,
-        code,
-      }).catch(console.error).finally(() => setCreating(false));
+    // Persist to Supabase in background
+    if (!uuid) {
+      console.error("[CreateIssueSheet] no UUID for slug:", slug, "— issue not saved");
+      return;
     }
+    if (!user) return;
+
+    setCreating(true);
+    dbCreateIssue({
+      projectUuid: uuid,
+      sprintId: sprintId || undefined,
+      title: optimistic.title,
+      description: optimistic.description,
+      type,
+      status,
+      priority,
+      assigneeId: assignees[0]?.id,
+      reporterId: user.id,
+      points: points ? parseInt(points) : undefined,
+      dueDate: dueDate || undefined,
+      code,
+    }).then((real) => {
+      if (real) {
+        // Swap optimistic placeholder with the real persisted issue
+        replaceIssue(optimistic.id, { ...real, projectId: slug });
+      } else {
+        console.error("[CreateIssueSheet] createIssue returned null — DB insert failed");
+      }
+    }).catch(console.error).finally(() => setCreating(false));
   };
 
   const selectedStatus = STATUSES.find((s) => s.value === status) ?? STATUSES[0];

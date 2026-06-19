@@ -4,7 +4,7 @@
  * mapping to/from DB column names is handled here.
  */
 import { createClient } from "@/lib/supabase/client";
-import { sendAssignedNotifications, sendAssignmentEmail } from "@/lib/supabase/notification-actions";
+import { sendAssignedNotifications, sendAssignmentEmail, createNotificationAction } from "@/lib/supabase/notification-actions";
 import type { Issue, Project, Sprint, Member } from "@/lib/types";
 
 /* ─── Type helpers ─────────────────────────────────────── */
@@ -17,8 +17,14 @@ const APP_TO_DB_STATUS: Record<string, string> = {
   Reviewing: "In Review",
 };
 
+// DB type ↔ app type (DB uses "Feature", app uses "Story")
+const APP_TO_DB_TYPE: Record<string, string> = { Story: "Feature" };
+const DB_TO_APP_TYPE: Record<string, string> = { Feature: "Story" };
+
 function toAppStatus(s: string) { return DB_TO_APP_STATUS[s] ?? s; }
 function toDbStatus(s: string)  { return APP_TO_DB_STATUS[s] ?? s; }
+function toDbType(s: string)    { return APP_TO_DB_TYPE[s] ?? s; }
+function toAppType(s: string)   { return DB_TO_APP_TYPE[s] ?? s; }
 
 // Maps legacy/unknown color values → avatar-orb variant class
 const COLOR_MAP: Record<string, string> = {
@@ -377,7 +383,7 @@ export async function fetchIssues(
       code: row.code ?? `ISSUE-${row.id.slice(-4)}`,
       title: row.title,
       description: row.description ?? undefined,
-      type: (row.type as Issue["type"]) ?? "Task",
+      type: (toAppType(row.type) as Issue["type"]) ?? "Task",
       status: toAppStatus(row.status),
       priority: (row.priority as Issue["priority"]) ?? "Medium",
       assignees,
@@ -414,10 +420,10 @@ export async function createIssue(data: {
     .insert({
       project_id: data.projectUuid,
       sprint_id: data.sprintId ?? null,
-      parent_id: data.parentId ?? null,
+      ...(data.parentId ? { parent_id: data.parentId } : {}),
       title: data.title,
       description: data.description ?? null,
-      type: data.type ?? "Task",
+      type: toDbType(data.type ?? "Task"),
       status: toDbStatus(data.status ?? "Todo"),
       priority: data.priority ?? "Medium",
       assignee_id: data.assigneeId ?? null,
@@ -433,7 +439,10 @@ export async function createIssue(data: {
     `)
     .single();
 
-  if (error || !row) return null;
+  if (error || !row) {
+    console.error("[createIssue] insert failed:", error?.code, error?.message, error?.details, { projectUuid: data.projectUuid, type: toDbType(data.type ?? "Task"), status: toDbStatus(data.status ?? "Todo") });
+    return null;
+  }
 
   // Auto-add the assignee as a project member if not already one
   if (data.assigneeId) {
@@ -501,7 +510,7 @@ export async function updateIssue(
   if (patch.priority !== undefined)    dbPatch.priority = patch.priority;
   if (patch.type !== undefined)        dbPatch.type = patch.type;
   if (patch.sprintId !== undefined)    dbPatch.sprint_id = patch.sprintId;
-  if (patch.parentId !== undefined)    dbPatch.parent_id = patch.parentId;
+  if (patch.parentId)                  dbPatch.parent_id = patch.parentId;
   if (patch.assigneeId !== undefined)  dbPatch.assignee_id = patch.assigneeId;
   if (patch.points !== undefined)      dbPatch.points = patch.points;
   if (patch.dueDate !== undefined)     dbPatch.due_date = patch.dueDate;
@@ -554,19 +563,6 @@ export async function updateIssue(
       }
 
       const assignerName = actor?.user_metadata?.full_name ?? "Someone";
-      const notifTitle   = `You were assigned to ${issueCode ? `${issueCode}: ` : ""}${issueTitle}`;
-
-      // Notify newly added assignees via server action (bypasses RLS)
-      await sendAssignedNotifications(
-        newlyAdded.map((uid) => ({
-          user_id:  uid,
-          type:     "assigned",
-          title:    notifTitle,
-          body:     `Assigned by ${assignerName}`,
-          issue_id: id,
-          actor_id: actor?.id ?? null,
-        }))
-      );
 
       // Send email to each newly assigned user
       if (newlyAdded.length > 0) {
@@ -686,22 +682,20 @@ export async function inviteMemberByEmail(data: {
 
   if (error) return { success: false, error: error.message };
 
-  // Notify the invited user
+  // Notify the invited user — use admin client to bypass RLS
   const { data: { user: actor } } = await supabase.auth.getUser();
   const { data: projectRow } = await supabase
     .from("projects")
     .select("name")
     .eq("id", data.projectUuid)
     .single();
-  try {
-    await supabase.from("notifications").insert({
-      user_id: userId,
-      type: "invite",
-      title: `You were added to ${projectRow?.name ?? "a project"}`,
-      body: `You now have ${data.role ?? "member"} access.`,
-      actor_id: actor?.id ?? null,
-    });
-  } catch (_) { /* non-fatal */ }
+  await createNotificationAction({
+    userId,
+    type: "invite",
+    title: `You were added to ${projectRow?.name ?? "a project"}`,
+    body: `You now have ${data.role ?? "member"} access.`,
+    actorId: actor?.id ?? undefined,
+  }).catch(() => {});
 
   return { success: true };
 }
@@ -981,7 +975,7 @@ export async function createComment(data: {
         );
       }
     }
-  } catch (_) { /* non-fatal */ }
+  } catch { /* non-fatal */ }
 
   return {
     id: row.id,

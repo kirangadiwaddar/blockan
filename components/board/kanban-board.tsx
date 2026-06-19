@@ -22,7 +22,6 @@ import { IssueDetailSheet } from "@/components/issue/issue-detail-sheet";
 import { ManageColumnsSheet } from "@/components/board/manage-columns-sheet";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -83,7 +82,6 @@ export function KanbanBoard({ initialIssues, members = [], projectId: propProjec
       if (saved) {
         const parsed: BoardColumn[] = JSON.parse(saved);
         // Merge: keep saved order/visibility, ensure all DEFAULT_COLUMNS builtins exist
-        const builtinIds = new Set(DEFAULT_COLUMNS.map((c) => c.id));
         const savedIds = new Set(parsed.map((c) => c.id));
         const missing = DEFAULT_COLUMNS.filter((c) => !savedIds.has(c.id));
         return [...missing, ...parsed];

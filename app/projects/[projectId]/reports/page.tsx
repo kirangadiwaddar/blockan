@@ -11,11 +11,11 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend, LineChart, Line, AreaChart, Area,
+  ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
 } from "recharts";
 import {
-  Bug, BookOpen, CheckSquare, Zap, TrendingUp, Users, Target, Clock,
-  AlertTriangle, CheckCircle2, Flame, Activity, BarChart2, ArrowUpRight,
+  Bug, BookOpen, CheckSquare, Zap, Users, Target,
+  AlertTriangle, CheckCircle2, Flame, Activity, BarChart2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
@@ -87,19 +87,19 @@ function StatCard({
 }) {
   return (
     <Card className="rounded-2xl overflow-hidden">
-      <CardContent className="p-5 flex items-start gap-4">
-        <div className={cn("size-10 rounded-xl flex items-center justify-center shrink-0", accent)}>
-          <Icon size={18} />
+      <CardContent className="p-4 flex items-start gap-3">
+        <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0", accent)}>
+          <Icon size={15} />
         </div>
         <div className="flex flex-col gap-0.5 flex-1 min-w-0">
           <span className="text-xs text-muted-foreground">{label}</span>
-          <span className="text-2xl font-bold leading-tight">{value}</span>
+          <span className="text-xl font-bold leading-tight">{value}</span>
           <span className="text-xs text-muted-foreground">{sub}</span>
         </div>
         {ring !== undefined && ringColor && (
           <div className="relative shrink-0">
-            <RingChart value={ring} color={ringColor} />
-            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold">{ring}%</span>
+            <RingChart value={ring} color={ringColor} size={56} />
+            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold">{ring}%</span>
           </div>
         )}
       </CardContent>
@@ -111,7 +111,7 @@ function StatCard({
 
 export default function ReportsPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
-  const { projects, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
+  const { sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
   const { issues: allCtxIssues, loading: issuesLoading } = useIssues();
 
   const project = projectBySlug(projectId);
@@ -121,7 +121,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
   if (!project && (projectsLoading || issuesLoading)) {
     return (
       <AppSidebar>
-        <div className="flex flex-col gap-6 p-6 w-full">
+        <div className="flex flex-col gap-4 p-4 sm:p-5 w-full">
           <div className="flex items-center gap-3">
             <Skeleton className="size-7 rounded-lg" />
             <Skeleton className="h-6 w-48" />
@@ -192,11 +192,6 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
     fill: PRIORITY_COLORS[p],
   }));
 
-  const typeData = (["Bug", "Story", "Task", "Epic"] as IssueType[]).map((t) => ({
-    name: t,
-    count: issues.filter((i) => i.type === t).length,
-    fill: TYPE_COLORS[t],
-  }));
 
   /* ── member workload ── */
   const workload = project.members.map((m) => {
@@ -228,7 +223,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
 
   return (
     <AppSidebar>
-      <div className="flex flex-col gap-6 p-6 w-full">
+      <div className="flex flex-col gap-4 p-4 sm:p-5 w-full">
 
         {/* ── Header ── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -305,18 +300,18 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
                 <Badge className="bg-blue-500/10 text-blue-500 font-normal text-xs">{sprintPct}% complete</Badge>
               </div>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4 pb-5">
-              <Progress value={sprintPct} className="h-2.5" indicatorClassName={progressColor(sprintPct)} />
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <CardContent className="flex flex-col gap-3 pb-4">
+              <Progress value={sprintPct} className="h-2" indicatorClassName={progressColor(sprintPct)} />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {(["Todo", "In Progress", "Reviewing", "Completed"] as const).map((s) => {
                   const count = sprintIssues.filter((i) => i.status === s).length;
                   return (
-                    <div key={s} className="flex flex-col gap-1 px-3 py-2.5 rounded-xl bg-muted/40">
+                    <div key={s} className="flex flex-col gap-0.5 px-3 py-2 rounded-xl bg-muted/40">
                       <span className="flex items-center gap-1.5">
                         <span className="size-2 rounded-full shrink-0" style={{ background: STATUS_COLORS[s] }} />
                         <span className="text-xs text-muted-foreground">{s}</span>
                       </span>
-                      <span className="text-xl font-bold">{count}</span>
+                      <span className="text-lg font-bold">{count}</span>
                     </div>
                   );
                 })}
@@ -335,7 +330,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
             </CardHeader>
             <CardContent className="pb-4">
               <div className="relative">
-                <ResponsiveContainer width="100%" height={180}>
+                <ResponsiveContainer width="100%" height={160}>
                   <PieChart>
                     <Pie
                       data={statusData}
@@ -381,7 +376,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
                   Not enough data yet
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={190}>
                   <AreaChart data={timelineData}>
                     <defs>
                       <linearGradient id="totalGrad" x1="0" y1="0" x2="0" y2="1">
@@ -417,7 +412,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
             <CardContent className="pb-4 flex flex-col gap-3">
               {/* Thin donut chart */}
               <div className="relative">
-                <ResponsiveContainer width="100%" height={180}>
+                <ResponsiveContainer width="100%" height={160}>
                   <PieChart>
                     <Pie
                       data={priorityData.filter((p) => p.count > 0)}
@@ -485,7 +480,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
                   No sprint data yet
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={190}>
                   <BarChart data={velocityData} barGap={4}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
@@ -512,7 +507,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
                 {workload.map(({ member, total, completed, active, open }) => {
                   const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
                   return (
-                    <div key={member.id} className="flex flex-col gap-2.5 p-3.5 rounded-xl border bg-card">
+                    <div key={member.id} className="flex flex-col gap-2 p-3 rounded-xl border bg-card">
                       <div className="flex items-center gap-3">
                         <Avatar className="size-7 shrink-0">
                           <AvatarImage src={member.avatar} alt={member.name} />
@@ -562,7 +557,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
                 const due = new Date(issue.dueDate!);
                 const daysLate = Math.round((today.getTime() - due.getTime()) / 86400000);
                 return (
-                  <div key={issue.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-500/5 border border-red-200/50 dark:border-red-900/30">
+                  <div key={issue.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-red-500/5 border border-red-200/50 dark:border-red-900/30">
                     <span className="size-2 rounded-full bg-red-500 shrink-0" />
                     <span className="text-xs font-mono text-muted-foreground shrink-0">{issue.code}</span>
                     <span className="text-sm flex-1 truncate">{issue.title}</span>

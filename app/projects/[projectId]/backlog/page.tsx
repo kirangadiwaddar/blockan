@@ -98,14 +98,9 @@ function PriorityBadge({ priority }: { priority: IssuePriority }) {
 function SprintGroup({
   label,
   issues,
-  sprintId,
-  projectId,
-  projectUuid,
-  projectKey,
   selectedIds,
   onSelect,
   onIssueClick,
-  onCreated,
   onAddIssue,
   onDeleteIssue,
   defaultOpen,
@@ -113,14 +108,9 @@ function SprintGroup({
 }: {
   label: string;
   issues: Issue[];
-  sprintId?: string;
-  projectId: string;
-  projectUuid?: string;
-  projectKey?: string;
   selectedIds: Set<string>;
   onSelect: (id: string) => void;
   onIssueClick: (issue: Issue) => void;
-  onCreated: (issue: Issue) => void;
   onAddIssue?: () => void;
   onDeleteIssue?: (issue: Issue) => void;
   defaultOpen: boolean;
@@ -305,7 +295,7 @@ function SprintGroup({
 
 function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
-  const { projects, sprintsForProject, projectBySlug, uuidForSlug, loading: projectsLoading } = useProjects();
+  const { sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
   const project        = projectBySlug(projectId);
   const projectSprints = sprintsForProject(project?.id ?? projectId);
   const role           = useProjectRole(projectId);
@@ -648,13 +638,9 @@ function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }
         <SprintGroup
           label="Backlog"
           issues={backlogIssues}
-          projectId={project.id}
-          projectUuid={uuidForSlug(project.id)}
-          projectKey={project.key}
           selectedIds={selectedIds}
           onSelect={toggleSelect}
           onIssueClick={openDetail}
-          onCreated={addIssue}
           onAddIssue={readOnly ? undefined : () => setCreateOpen(true)}
           onDeleteIssue={readOnly ? undefined : setDeleteTarget}
           defaultOpen

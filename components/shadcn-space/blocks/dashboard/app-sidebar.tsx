@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   LucideIcon, Grid3x2, ListTree, SquareStack, CalendarDays, BookText,
-  FolderRoot, ChartPie, Users, Settings, Menu, X,
+  FolderRoot, ChartPie, Users, Menu, X,
   LogOut, CircleUserRound, ChevronUp, ChevronDown, Check, FolderKanban, Search, BarChart2, BookOpen,
 } from "lucide-react";
 import { SiteHeader } from "@/components/shadcn-space/blocks/dashboard/site-header";

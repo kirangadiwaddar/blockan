@@ -18,4 +18,4 @@
   d.style.setProperty('--primary',c.p);
   d.style.setProperty('--primary-foreground',c.f);
   d.style.setProperty('--ring',c.r);
-}catch(e){}})();
+}catch{}})();

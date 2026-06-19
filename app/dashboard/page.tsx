@@ -37,19 +37,13 @@ import {
 import {
   Bug, BookOpen, CheckSquare, Zap,
   Target, Users, ArrowRight, FolderOpen, Inbox,
-  FolderPlus, UserPlus, SquarePen, Sparkles,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { CreateProjectSheet } from "@/components/projects/create-project-sheet";
 import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 import { useState } from "react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn, progressColor } from "@/lib/utils";
 import Link from "next/link";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell,
-} from "recharts";
 
 /* ─── helpers ───────────────────────────────────────────────── */
 
@@ -85,7 +79,6 @@ function DonutChart({ data, total }: { data: { name: string; count: number; fill
   const r = (size - stroke) / 2;
   const cx = size / 2;
   const cy = size / 2;
-  const circ = 2 * Math.PI * r;
   const gap = 3; // gap in degrees between segments
 
   let angle = -90; // start at top
@@ -527,7 +520,7 @@ export default function DashboardPage() {
                       </tr>
                     )}
                     {projects.map((project) => {
-                      const { progress, openIssues, totalIssues } = projectStats(project);
+                      const { progress, openIssues } = projectStats(project);
                       return (
                       <TableRow key={project.id} className="cursor-pointer" onClick={() => { }}>
                         <TableCell className="ps-4 py-2">

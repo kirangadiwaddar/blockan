@@ -4,8 +4,10 @@ import { useTheme } from "@/components/providers";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ShortcutsDialog } from "@/components/shortcuts-dialog";
-import { SearchIcon, Moon, Sun } from "lucide-react";
+import { SearchIcon, Moon, Sun, Loader2 } from "lucide-react";
 import { CommandPalette } from "@/components/search/command-palette";
+import { useProjects } from "@/lib/projects-context";
+import { useIssues } from "@/lib/issues-context";
 
 function ThemeToggle() {
   const { theme, toggle } = useTheme();
@@ -18,6 +20,13 @@ function ThemeToggle() {
       {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </button>
   );
+}
+
+function PageLoader() {
+  const { loading: projectsLoading } = useProjects();
+  const { loading: issuesLoading } = useIssues();
+  if (!projectsLoading && !issuesLoading) return null;
+  return <Loader2 className="size-4 animate-spin text-muted-foreground" />;
 }
 
 export function SiteHeader() {
@@ -46,6 +55,7 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-1">
+          <PageLoader />
           <ThemeToggle />
           <NotificationBell />
         </div>

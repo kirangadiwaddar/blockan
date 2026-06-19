@@ -118,7 +118,6 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
 
     // Try adding existing user to project first (project-scoped only)
     let anySuccess = false;
-    let lastError: string | undefined;
 
     if (projectId && targetProjects.length > 0) {
       for (const project of targetProjects) {
@@ -126,8 +125,6 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
         const res = await inviteMemberByEmail({ projectUuid: uuid, email: email.trim(), role });
         if (res.success) {
           anySuccess = true;
-        } else if (!res.error?.includes("No Blockan account")) {
-          lastError = res.error;
         }
       }
       if (anySuccess) {

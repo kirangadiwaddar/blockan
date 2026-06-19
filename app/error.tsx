@@ -12,7 +12,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log to your error monitoring service here if needed
+    console.error("[error boundary]", error.digest ?? error.message, error);
   }, [error]);
 
   return (
