@@ -8,9 +8,13 @@ import { useIssues } from "@/lib/issues-context";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, FileDown, UserPlus } from "lucide-react";
+import { CalendarDays, ChevronDown, FileDown, FileUp, UserPlus } from "lucide-react";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
+import { ImportIssuesDialog } from "@/components/board/import-issues-dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSearchParams } from "next/navigation";
 import { type Issue } from "@/lib/types";
 import { useProjectRole, canEditProject } from "@/lib/projects-context";
@@ -63,6 +67,7 @@ function BoardPageContent({ projectId }: { projectId: string }) {
   const readOnly = !canEditProject(role);
 
   const [inviteOpen, setInviteOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
 
   const project = projectBySlug(projectId);
   const sprints = sprintsForProject(project?.id ?? projectId);
@@ -116,6 +121,7 @@ function BoardPageContent({ projectId }: { projectId: string }) {
   return (
     <AppSidebar>
       <InviteMemberDialog open={inviteOpen} onClose={() => setInviteOpen(false)} projectId={project?.id ?? ""} />
+      <ImportIssuesDialog open={importOpen} onOpenChange={setImportOpen} projectId={projectId} />
       <div className="flex flex-col gap-4 p-4 sm:p-6 overflow-hidden w-full">
 
         {/* Title + actions */}
@@ -125,7 +131,7 @@ function BoardPageContent({ projectId }: { projectId: string }) {
             <h1 className="text-xl font-semibold truncate">{project?.name}</h1>
           </div>
 
-          {/* Invite + Export buttons */}
+          {/* Invite + Import/Export dropdown */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -135,16 +141,45 @@ function BoardPageContent({ projectId }: { projectId: string }) {
               <UserPlus size={14} />
               Invite
             </button>
-            {projectIssues.length > 0 && (
-              <button
-                type="button"
-                onClick={() => handleExport(`${projectName} - Issues`, ["Todo","In Progress","Reviewing","Completed","Cancelled"])}
-                className="flex flex-1 sm:flex-none items-center justify-center gap-2 h-9 px-3.5 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-80 transition-opacity cursor-pointer"
-              >
-                <FileDown size={14} />
-                Export XLSX
-              </button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger render={
+                <button
+                  type="button"
+                  className="flex flex-1 sm:flex-none items-center justify-center gap-2 h-9 px-3.5 rounded-lg bg-primary text-primary-foreground text-sm hover:opacity-80 transition-opacity cursor-pointer"
+                >
+                  <FileUp size={14} />
+                  Import / Export
+                  <ChevronDown size={13} />
+                </button>
+              } />
+              <DropdownMenuContent align="end" className="w-52 p-1">
+                {!readOnly && (
+                  <DropdownMenuItem
+                    onClick={() => setImportOpen(true)}
+                    className="gap-2.5 cursor-pointer"
+                  >
+                    <FileUp size={14} className="text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Import Issues</p>
+                      <p className="text-xs text-muted-foreground">Excel, GitHub, Jira</p>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+                {!readOnly && projectIssues.length > 0 && <DropdownMenuSeparator />}
+                {projectIssues.length > 0 && (
+                  <DropdownMenuItem
+                    onClick={() => handleExport(`${projectName} - Issues`, ["Todo","In Progress","Reviewing","Completed","Cancelled"])}
+                    className="gap-2.5 cursor-pointer"
+                  >
+                    <FileDown size={14} className="text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Export XLSX</p>
+                      <p className="text-xs text-muted-foreground">Download all issues</p>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
