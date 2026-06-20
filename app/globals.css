@@ -136,6 +136,14 @@ body {
   }
 }
 
+/* ─── Project card gradient ──────────────────────────────── */
+.project-card-body {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 12%, transparent) 0%, transparent 65%);
+}
+.dark .project-card-body {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--card-accent) 20%, transparent) 0%, transparent 65%);
+}
+
 /* ─── Project avatar orbs ─────────────────────────────────── */
 .avatar-orb {
   background-image:

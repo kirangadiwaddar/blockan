@@ -770,29 +770,6 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="flex flex-col gap-0 divide-y divide-destructive/10 p-0">
 
-                  {/* Seed demo data */}
-                  <div className="flex items-start justify-between gap-4 px-6 py-5">
-                    <div>
-                      <p className="text-sm font-medium flex items-center gap-2">
-                        <Database size={14} className="text-violet-500" /> Seed demo data
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Populate the app with 5 demo projects, 10 team members, sprints, and realistic issues. Safe to run multiple times — skips existing data.
-                      </p>
-                      {seedMsg && <StatusMsg msg={seedMsg} />}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="cursor-pointer gap-2 shrink-0"
-                      disabled={seeding}
-                      onClick={handleSeed}
-                    >
-                      {seeding ? <Loader2 size={13} className="animate-spin" /> : <Database size={13} />}
-                      {seeding ? "Seeding…" : "Seed data"}
-                    </Button>
-                  </div>
-
                   {/* Export */}
                   <div className="flex items-start justify-between gap-4 px-6 py-5">
                     <div>

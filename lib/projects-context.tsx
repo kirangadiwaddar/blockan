@@ -160,6 +160,9 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "project_members" }, () => {
         if (!cancelled) scheduleReload();
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "issues" }, () => {
+        if (!cancelled) scheduleReload();
+      })
       .subscribe();
 
     return () => {
