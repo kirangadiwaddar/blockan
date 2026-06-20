@@ -53,7 +53,7 @@ export async function signUp(formData: FormData) {
 
     if (error) return { error: error.message };
 
-    redirect("/verify-email?email=" + encodeURIComponent(email));
+    redirect("/onboarding");
   } catch (error) {
     if (isRedirectError(error)) throw error;
     return { error: "An error occurred. Please try again." };

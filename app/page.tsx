@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { motion, useInView, useScroll, useTransform } from "motion/react";
 import { LogoMark } from "@/assets/logo/logo";
 import {
@@ -879,6 +881,15 @@ function Footer() {
 
 /* ─── Page ──────────────────────────────────────────────────── */
 export default function LandingPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.replace("/dashboard");
+    });
+  }, [router]);
+
   return (
     <div className="bg-[#050505] min-h-screen">
       <Nav />
