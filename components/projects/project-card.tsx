@@ -7,9 +7,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
+const COLOR_HEX: Record<string, string> = {
+  "avatar-orb-blue":    "#3b82f6",
+  "avatar-orb-violet":  "#7c3aed",
+  "avatar-orb-pink":    "#db2777",
+  "avatar-orb-amber":   "#f59e0b",
+  "avatar-orb-emerald": "#10b981",
+  "avatar-orb-cyan":    "#06b6d4",
+  "avatar-orb-rose":    "#e11d48",
+};
+
 export function ProjectCard({ project, onDelete, onEdit }: { project: Project; onDelete?: () => void; onEdit?: () => void }) {
   const base = `/projects/${project.id}`;
   const router = useRouter();
+  const hex = COLOR_HEX[project.color] ?? "#3b82f6";
+  // hex + alpha: "33" = 20% opacity (light), "55" = 33% opacity (dark)
+  const bodyStyle = {
+    background: `linear-gradient(135deg, ${hex}33 0%, transparent 70%)`,
+  } as React.CSSProperties;
 
   return (
     <div
@@ -17,14 +32,14 @@ export function ProjectCard({ project, onDelete, onEdit }: { project: Project; o
       onClick={() => router.push(`${base}/board`)}
     >
       {/* Body */}
-      <div className="flex flex-col gap-4 p-5">
+      <div className="flex flex-col gap-4 p-5" style={bodyStyle}>
 
         {/* Row 1: icon left, key + menu right */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
             <div className="relative shrink-0" style={{ width: 44, height: 44 }}>
               <svg className="absolute inset-0 rotate-0" width="44" height="44" viewBox="0 0 44 44">
-                <circle cx="22" cy="22" r="19" fill="none" stroke="currentColor" strokeWidth="3" className="text-border" />
+                <circle cx="22" cy="22" r="19" fill="none" stroke="currentColor" strokeWidth="3" className="text-white/60" />
                 <circle
                   cx="22" cy="22" r="19" fill="none"
                   stroke="currentColor" strokeWidth="3"
@@ -36,7 +51,7 @@ export function ProjectCard({ project, onDelete, onEdit }: { project: Project; o
               </svg>
               <div className={`avatar-orb ${project.color} rounded-full absolute`} style={{ inset: 7 }} />
             </div>
-            <span className="text-[10px] font-semibold tabular-nums text-muted-foreground">{project.progress}%</span>
+            <span className="text-xs font-semibold tabular-nums text-foreground">{project.progress}%</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-[10px] font-mono font-medium text-muted-foreground">
