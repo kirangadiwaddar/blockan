@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { Toaster } from "sonner";
 import { IssuesProvider } from "@/lib/issues-context";
 import { CommentsProvider } from "@/lib/comments-context";
 import { UserProvider } from "@/lib/supabase/user-context";
@@ -85,6 +86,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeCtx.Provider value={{ theme, toggle, accentId, setAccent }}>
+      <Toaster position="bottom-right" richColors closeButton />
       <RefreshNeededProvider>
         <UserProvider>
           <ProjectsProvider>

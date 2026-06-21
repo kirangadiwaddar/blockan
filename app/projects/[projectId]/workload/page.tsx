@@ -269,9 +269,17 @@ function MemberModal({
 function WorkloadPageInner({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
   const { projectBySlug, loading: projectsLoading } = useProjects();
-  const { issues: allIssues, updateIssue, loading: issuesLoading } = useIssues();
+  const { issues: allIssues, updateIssue, loading: issuesLoading, refreshIssues } = useIssues();
   const role = useProjectRole(projectId);
   const readOnly = !canEditProject(role);
+
+  React.useEffect(() => {
+    const p = projectBySlug(projectId);
+    if (!p) return;
+    const hasIssues = allIssues.some((i) => i.projectId === p.id);
+    if (!hasIssues && !issuesLoading) refreshIssues().catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   const [memberSearch, setMemberSearch] = useState("");
   const [modalEntry, setModalEntry] = useState<Entry | null>(null);

@@ -19,6 +19,7 @@ import {
 } from "@/lib/supabase/db";
 import { createNotificationAction } from "@/lib/supabase/notification-actions";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 type IssuesCtx = {
   issues: Issue[];
@@ -270,7 +271,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
       points: updated.storyPoints,
       dueDate: updated.dueDate ?? null,
       parentId: updated.parentId ?? null,
-    }).catch(() => {});
+    }).catch(() => { toast.error("Failed to save issue changes."); });
   }, []);
 
   const addIssue = useCallback((issue: Issue) => {
@@ -283,7 +284,7 @@ export function IssuesProvider({ children }: { children: ReactNode }) {
 
   const deleteIssue = useCallback((id: string) => {
     setIssues((prev) => prev.filter((i) => i.id !== id));
-    dbDeleteIssue(id).catch(() => {});
+    dbDeleteIssue(id).catch(() => { toast.error("Failed to delete issue."); });
   }, []);
 
   return (

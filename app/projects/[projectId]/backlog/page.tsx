@@ -300,7 +300,14 @@ function BacklogPageInner({ params }: { params: Promise<{ projectId: string }> }
   const projectSprints = sprintsForProject(project?.id ?? projectId);
   const role           = useProjectRole(projectId);
   const readOnly       = !canEditProject(role);
-  const { issues: allCtxIssues, updateIssue, addIssue, deleteIssue, loading: issuesLoading } = useIssues();
+  const { issues: allCtxIssues, updateIssue, addIssue, deleteIssue, loading: issuesLoading, refreshIssues } = useIssues();
+
+  React.useEffect(() => {
+    if (!project) return;
+    const hasIssues = allCtxIssues.some((i) => i.projectId === project.id);
+    if (!hasIssues && !issuesLoading) refreshIssues().catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
   const issueList = useMemo(
     () => allCtxIssues.filter((i) => i.projectId === project?.id),
     [allCtxIssues, project?.id],
