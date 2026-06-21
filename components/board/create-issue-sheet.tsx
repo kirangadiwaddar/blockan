@@ -143,7 +143,7 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
     const prefix = (project?.name ?? project?.key ?? "ISS").replace(/\s+/g, "").slice(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "");
     const code = `${prefix}-${Math.floor(Math.random() * 900 + 100)}`;
     const slug = projectId ?? project?.id ?? "ph";
-    const uuid = uuidForSlug(slug);
+    const uuid = uuidForSlug(slug) ?? (project as any)?._uuid;
 
     // Optimistic issue (shown immediately)
     const optimistic: Issue = {

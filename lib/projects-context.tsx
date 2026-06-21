@@ -27,6 +27,7 @@ import {
 } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/supabase/user-context";
+import { toast } from "sonner";
 
 type ProjectsCtx = {
   projects: Project[];
@@ -195,6 +196,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     if (!result) {
       // Insert failed — revert the optimistic project so the UI stays honest
       setProjects((prev) => prev.filter((x) => x.id !== p.id));
+      toast.error("Failed to create project. Please try again.");
       return;
     }
 
@@ -210,7 +212,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     if (!uuid) return;
     const ok = await dbDeleteProject(uuid).catch(() => false);
     if (!ok) {
-      // Revert on failure by re-fetching
+      toast.error("Failed to delete project. Please try again.");
       await loadAll().catch(() => {});
     }
   }, [uuidMap, loadAll]);
@@ -220,7 +222,10 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
     const uuid = uuidMap[slug];
     if (!uuid) return;
     const ok = await dbUpdateProject(uuid, data).catch(() => false);
-    if (!ok) await loadAll().catch(() => {});
+    if (!ok) {
+      toast.error("Failed to save project changes. Please try again.");
+      await loadAll().catch(() => {});
+    }
   }, [uuidMap, loadAll]);
 
   const addSprint = useCallback(async (s: Sprint, projectSlug: string) => {
@@ -248,7 +253,7 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
 
   const updateSprintStatus = useCallback((id: string, status: Sprint["status"]) => {
     setSprints((prev) => prev.map((s) => s.id === id ? { ...s, status } : s));
-    dbUpdateSprintStatus(id, status).catch(() => {});
+    dbUpdateSprintStatus(id, status).catch(() => { toast.error("Failed to update sprint status."); });
   }, []);
 
   const editSprint = useCallback((id: string, data: { name?: string; goal?: string; startDate?: string; endDate?: string }) => {
@@ -259,12 +264,12 @@ export function ProjectsProvider({ children }: { children: ReactNode }) {
       ...(data.startDate !== undefined && { startDate: data.startDate }),
       ...(data.endDate !== undefined && { endDate: data.endDate }),
     } : s));
-    dbUpdateSprint(id, data).catch(() => {});
+    dbUpdateSprint(id, data).catch(() => { toast.error("Failed to save sprint changes."); });
   }, []);
 
   const deleteSprint = useCallback((id: string) => {
     setSprints((prev) => prev.filter((s) => s.id !== id));
-    dbDeleteSprint(id).catch(() => {});
+    dbDeleteSprint(id).catch(() => { toast.error("Failed to delete sprint."); });
   }, []);
 
   const sprintsForProject = useCallback(

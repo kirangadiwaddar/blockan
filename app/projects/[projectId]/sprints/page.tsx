@@ -579,12 +579,19 @@ function CreateSprintCard({ projectId, onCreated }: { projectId: string; onCreat
 export default function SprintsPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
   const { sprintsForProject, addSprint: ctxAddSprint, updateSprintStatus: ctxUpdateSprintStatus, editSprint: ctxEditSprint, deleteSprint: ctxDeleteSprint, projectBySlug, loading: projectsLoading } = useProjects();
-  const { issues: allCtxIssues, updateIssue: ctxUpdateIssue, loading: issuesLoading } = useIssues();
+  const { issues: allCtxIssues, updateIssue: ctxUpdateIssue, loading: issuesLoading, refreshIssues } = useIssues();
 
   const project   = projectBySlug(projectId);
   const sprintList = sprintsForProject(project?.id ?? projectId);
   const issueList  = allCtxIssues.filter((i) => i.projectId === project?.id);
   const role        = useProjectRole(projectId);
+
+  React.useEffect(() => {
+    if (!project) return;
+    const hasIssues = allCtxIssues.some((i) => i.projectId === project.id);
+    if (!hasIssues && !issuesLoading) refreshIssues().catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
   const readOnly    = !canEditProject(role);
   const sprintAdmin = canManageSprints(role);
 

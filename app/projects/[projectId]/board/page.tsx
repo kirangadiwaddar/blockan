@@ -61,10 +61,26 @@ function downloadXlsx(issues: Issue[], filename: string, colKeys: string[]) {
 function BoardPageContent({ projectId }: { projectId: string }) {
   const searchParams = useSearchParams();
   const defaultOpenIssueId = searchParams.get("issue") ?? undefined;
-  const { allMembers, sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
-  const { issues: allIssues, loading: issuesLoading } = useIssues();
+  const { allMembers, sprintsForProject, projectBySlug, loading: projectsLoading, uuidForSlug } = useProjects();
+  const { issues: allIssues, loading: issuesLoading, refreshIssues } = useIssues();
   const role = useProjectRole(projectId);
   const readOnly = !canEditProject(role);
+
+  // If the issues context was loaded before this project existed (e.g. right after
+  // onboarding), it won't have a realtime subscription for it. Refresh once so new
+  // issues created here actually persist across page reloads.
+  React.useEffect(() => {
+    const project = projectBySlug(projectId);
+    if (!project) return;
+    const uuid = uuidForSlug(projectId) ?? (project as any)?._uuid;
+    if (!uuid) return;
+    // Only refresh if this project's issues haven't been loaded yet
+    const hasIssues = allIssues.some((i) => i.projectId === projectId);
+    if (!hasIssues && !issuesLoading) {
+      refreshIssues().catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const [importOpen, setImportOpen] = React.useState(false);

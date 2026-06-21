@@ -323,7 +323,7 @@ export function ImportIssuesDialog({ open, onOpenChange, projectId }: Props) {
 
   const project = projectBySlug(projectId);
   const prefix = (project?.key ?? project?.name ?? "ISS").replace(/\s+/g, "").slice(0, 4).toUpperCase();
-  const uuid = uuidForSlug(projectId);
+  const uuid = uuidForSlug(projectId) ?? (project as any)?._uuid;
 
   function reset() {
     setExcelRows([]); setExcelError(""); setExcelParsing(false);
