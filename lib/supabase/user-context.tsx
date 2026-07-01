@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getInitials } from "@/lib/utils";
 import type { User } from "@supabase/supabase-js";
 
 type Profile = {
@@ -93,12 +94,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const email = user?.email ?? "";
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url || "";
   const bio = profile?.bio ?? "";
-  const initials = displayName
-    .split(" ")
-    .slice(0, 2)
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase();
+  const initials = getInitials(displayName || email);
 
   return (
     <Ctx.Provider value={{ user, profile, loading, displayName, email, avatarUrl, initials, bio, refreshProfile }}>

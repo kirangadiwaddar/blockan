@@ -6,7 +6,7 @@ import AppSidebar from "@/components/shadcn-space/blocks/dashboard/app-sidebar";
 import { IssueDetailSheet } from "@/components/issue/issue-detail-sheet";
 import { useProjects } from "@/lib/projects-context";
 import { useIssues } from "@/lib/issues-context";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, ExternalLink, Copy, Check, Link2 } from "lucide-react";
@@ -92,15 +92,15 @@ function IssuePermalinkContent() {
             </div>
             <p className="text-sm font-medium">{issue.code} · {issue.title}</p>
             <p className="text-xs text-muted-foreground max-w-sm">
-              The issue detail panel is open on the right. You can also{" "}
-              <Link
-                href={`/projects/${params.projectId}/board?issue=${issue.id}`}
-                className="text-primary underline underline-offset-2"
-              >
-                view it on the board
-              </Link>
-              .
+              The issue detail panel is open on the right.
             </p>
+            <Link
+              href={`/projects/${params.projectId}/board?issue=${issue.id}`}
+              className={buttonVariants({ size: "sm", className: "mt-2 gap-1.5 cursor-pointer" })}
+            >
+              <ExternalLink size={13} />
+              View it on the board
+            </Link>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 text-center px-6">

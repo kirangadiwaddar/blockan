@@ -4,8 +4,9 @@
  * mapping to/from DB column names is handled here.
  */
 import { createClient } from "@/lib/supabase/client";
-import { sendAssignedNotifications, sendAssignmentEmail, createNotificationAction } from "@/lib/supabase/notification-actions";
+import { sendAssignedNotifications, sendAssignmentEmail, createNotificationAction, addProjectMembersAction } from "@/lib/supabase/notification-actions";
 import type { Issue, Project, Sprint, Member } from "@/lib/types";
+import { getInitials } from "@/lib/utils";
 
 /* ─── Type helpers ─────────────────────────────────────── */
 
@@ -57,9 +58,7 @@ function profileToMember(p: {
 } | null | undefined, fallbackRole = "member"): Member | null {
   if (!p) return null;
   const name = p.full_name?.trim() || p.email?.trim() || "Unknown";
-  const initials = name.includes("@")
-    ? name[0].toUpperCase()
-    : name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+  const initials = getInitials(name);
   return {
     id: p.id,
     name,
@@ -444,20 +443,21 @@ export async function createIssue(data: {
     return null;
   }
 
-  // Auto-add the assignee as a project member if not already one
+  // Auto-add the assignee as a project member (service-role — bypasses RLS so it
+  // works even when the creator is a plain member, not an owner/admin).
   if (data.assigneeId) {
-    const { data: existing } = await supabase
-      .from("project_members")
-      .select("user_id")
-      .eq("project_id", data.projectUuid)
-      .eq("user_id", data.assigneeId)
-      .maybeSingle();
-    if (!existing) {
-      await supabase.from("project_members").insert({
-        project_id: data.projectUuid,
-        user_id: data.assigneeId,
-        role: "member",
-      });
+    await addProjectMembersAction(data.projectUuid, [data.assigneeId], "member").catch(() => {});
+
+    // Notify the assignee (unless they assigned it to themselves). Uses the
+    // service-role action, so it works for any creator role — not just admins.
+    if (data.assigneeId !== data.reporterId) {
+      await createNotificationAction({
+        userId:  data.assigneeId,
+        type:    "assigned",
+        title:   `You were assigned to ${data.code ?? data.title}`,
+        issueId: row.id,
+        actorId: data.reporterId,
+      }).catch(() => {});
     }
   }
 
@@ -548,19 +548,9 @@ export async function updateIssue(
       (uid) => !prevIds.has(uid) && uid !== actor?.id
     );
     if (newlyAdded.length > 0 && projectId) {
-      const { data: existingMembers } = await supabase
-        .from("project_members")
-        .select("user_id")
-        .eq("project_id", projectId)
-        .in("user_id", newlyAdded);
-
-      const alreadyMembers = new Set((existingMembers ?? []).map((r: any) => r.user_id));
-      const toAdd = newlyAdded.filter((uid) => !alreadyMembers.has(uid));
-      if (toAdd.length > 0) {
-        await supabase.from("project_members").insert(
-          toAdd.map((uid) => ({ project_id: projectId, user_id: uid, role: "member" }))
-        );
-      }
+      // Add as project members via the service-role action so it works even when
+      // the assigner is a plain member (RLS only lets owners/admins insert directly).
+      await addProjectMembersAction(projectId, newlyAdded, "member").catch(() => {});
 
       const assignerName = actor?.user_metadata?.full_name ?? "Someone";
 
@@ -822,7 +812,7 @@ export async function fetchRecentActivities(limit = 15): Promise<Activity[]> {
 
   (comments ?? []).forEach((c: any) => {
     const name = c.author?.full_name ?? "Someone";
-    const initials = name.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase();
+    const initials = getInitials(name);
     activities.push({
       id: `comment-${c.id}`,
       type: "comment",
@@ -839,7 +829,7 @@ export async function fetchRecentActivities(limit = 15): Promise<Activity[]> {
 
   (recentIssues ?? []).forEach((i: any) => {
     const name = i.reporter?.full_name ?? "Someone";
-    const initials = name.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase();
+    const initials = getInitials(name);
     // Treat as "created" if updated_at ≈ created_at, else "status changed"
     const isNew = Math.abs(
       new Date(i.updated_at).getTime() - new Date(i.created_at).getTime()
@@ -898,7 +888,7 @@ export async function fetchIssueActivities(issueId: string): Promise<IssueActivi
       issueId: row.issue_id,
       actorId: row.actor_id,
       actorName: name,
-      actorInitials: name.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase(),
+      actorInitials: getInitials(name),
       actorAvatar: row.actor?.avatar_url ?? undefined,
       eventType: row.event_type,
       fromValue: row.from_value,

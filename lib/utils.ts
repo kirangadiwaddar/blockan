@@ -17,3 +17,15 @@ export function progressColor(value: number): string {
 export function isCustomColor(dot: string): boolean {
   return !!dot && (dot.startsWith("#") || dot.startsWith("rgb") || dot.startsWith("hsl"));
 }
+
+/** Always returns a 2-character uppercase avatar initial.
+ *  "Ratan G" → "RG", "Ratan" → "RA", "ratan.g@x.com" → "RG". */
+export function getInitials(nameOrEmail?: string | null): string {
+  if (!nameOrEmail) return "?";
+  let s = nameOrEmail.trim();
+  if (!s) return "?";
+  if (s.includes("@")) s = s.split("@")[0];            // use the part before @ for emails
+  const words = s.split(/[\s._-]+/).filter(Boolean);   // split on space, dot, underscore, hyphen
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return (words[0] ?? s).slice(0, 2).toUpperCase();     // single token → first two letters
+}

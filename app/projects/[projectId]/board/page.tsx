@@ -8,7 +8,9 @@ import { useIssues } from "@/lib/issues-context";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, ChevronDown, FileDown, FileUp, UserPlus } from "lucide-react";
+import { CalendarDays, ChevronDown, FileDown, FileUp, UserPlus, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
 import { InviteMemberDialog } from "@/components/team/invite-member-dialog";
 import { ImportIssuesDialog } from "@/components/board/import-issues-dialog";
@@ -61,8 +63,22 @@ function downloadXlsx(issues: Issue[], filename: string, colKeys: string[]) {
 function BoardPageContent({ projectId }: { projectId: string }) {
   const searchParams = useSearchParams();
   const defaultOpenIssueId = searchParams.get("issue") ?? undefined;
-  const { allMembers, sprintsForProject, projectBySlug, loading: projectsLoading, uuidForSlug } = useProjects();
+  const { allMembers, sprintsForProject, projectBySlug, loading: projectsLoading, uuidForSlug, refreshProjects } = useProjects();
   const { issues: allIssues, loading: issuesLoading, refreshIssues } = useIssues();
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([refreshProjects(), refreshIssues()]);
+      toast.success("Board refreshed");
+    } catch {
+      toast.error("Couldn't refresh — try again.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const role = useProjectRole(projectId);
   const readOnly = !canEditProject(role);
 
@@ -147,8 +163,18 @@ function BoardPageContent({ projectId }: { projectId: string }) {
             <h1 className="text-xl font-semibold truncate">{project?.name}</h1>
           </div>
 
-          {/* Invite + Import/Export dropdown */}
+          {/* Refresh + Invite + Import/Export dropdown */}
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Refresh board"
+              aria-label="Refresh board"
+              className="flex items-center justify-center size-9 shrink-0 rounded-lg border border-input bg-background text-sm hover:bg-muted/50 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <RefreshCw size={14} className={cn(refreshing && "animate-spin")} />
+            </button>
             <button
               type="button"
               onClick={() => setInviteOpen(true)}

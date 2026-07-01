@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { uploadAvatar, createProject } from "@/lib/supabase/db";
 import { useUser } from "@/lib/supabase/user-context";
 import { useProjects } from "@/lib/projects-context";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import { ArrowRight, ArrowLeft, Camera, Plus, X } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { LogoMark } from "@/assets/logo/logo";
@@ -294,7 +294,7 @@ const inputCls = "h-11 w-full rounded-xl bg-background px-3.5 text-sm placeholde
 
 /* ── Profile Fields ───────────────────────────────────────────── */
 function ProfileFields({ name, setName, avatarPreview, fileRef, onAvatarChange, userEmail }: any) {
-  const initials = name.trim().split(" ").filter(Boolean).map((w: string) => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+  const initials = getInitials(name);
 
   return (
     <div className="flex flex-col gap-4">
@@ -424,7 +424,7 @@ function InviteFields({ inviteEmails, setInviteEmails, inviteInput, setInviteInp
             )}>
               <div className="flex items-center gap-2.5">
                 <div className="size-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-semibold text-muted-foreground shrink-0">
-                  {email[0].toUpperCase()}
+                  {getInitials(email)}
                 </div>
                 <span className="text-sm">{email}</span>
               </div>
