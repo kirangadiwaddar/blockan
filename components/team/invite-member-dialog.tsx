@@ -255,7 +255,6 @@ export function InviteMemberDialog({ open, onClose, projectId }: Props) {
                       role === r.value ? "bg-muted" : "hover:bg-muted/60"
                     )}
                   >
-                    <span className={cn("mt-0.5 shrink-0", r.color)}>{r.icon}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-foreground">{r.label}</span>

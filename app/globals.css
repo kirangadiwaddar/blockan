@@ -207,3 +207,20 @@ body {
 .tippy-box[data-theme~='mention'] > .tippy-content {
   padding: 0 !important;
 }
+
+/* ── Sonner toasts: close button on the right, inside the toast ── */
+[data-sonner-toast] {
+  padding-right: 1.75rem !important;
+}
+[data-sonner-toast] [data-close-button] {
+  left: auto !important;
+  right: 0.5rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: var(--background);
+  color: var(--muted-foreground);
+  border-color: var(--border);
+}
+[data-sonner-toast] [data-close-button]:hover {
+  color: var(--foreground);
+}

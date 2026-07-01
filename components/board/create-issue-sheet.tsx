@@ -206,7 +206,7 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex flex-col gap-0 p-0 w-full sm:max-w-lg">
-        <SheetHeader className="px-6 py-4 border-b">
+        <SheetHeader className="px-6 py-3.5 border-b">
           <div className="flex items-center gap-2">
             <TypeIcon size={15} className={selectedType.color} />
             <SheetTitle className="text-base">Create Issue</SheetTitle>
@@ -410,7 +410,7 @@ export function CreateIssueSheet({ open, defaultStatus, projectId, defaultSprint
           </FieldSection>
         </div>
 
-        <SheetFooter className="px-6 py-4 border-t gap-2">
+        <SheetFooter className="flex-row justify-end gap-2 px-6 py-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="cursor-pointer">
             Cancel
           </Button>

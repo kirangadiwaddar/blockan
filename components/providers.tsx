@@ -86,7 +86,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeCtx.Provider value={{ theme, toggle, accentId, setAccent }}>
-      <Toaster position="bottom-right" richColors closeButton />
+      <Toaster position="top-center" richColors closeButton />
       <RefreshNeededProvider>
         <UserProvider>
           <ProjectsProvider>

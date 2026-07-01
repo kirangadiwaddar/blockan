@@ -6,7 +6,7 @@ import { Issue } from "@/lib/types";
 import { IssueCard } from "@/components/board/issue-card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isCustomColor } from "@/lib/utils";
 
 /* per-column accent colours */
 const colTheme: Record<string, { bar: string; count: string; empty: string; colBg: string }> = {
@@ -44,17 +44,20 @@ interface Props {
 export function KanbanColumn({ colId, label, dot, issues, readOnly, onAddIssue, onIssueClick, onDeleteIssue }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id: colId });
   const builtinTheme = colTheme[colId];
-  const colBg = builtinTheme?.colBg ?? dotToBg[dot] ?? fallback.colBg;
-  const theme = builtinTheme ?? { ...fallback, bar: dot || fallback.bar };
+  const custom = !builtinTheme && isCustomColor(dot);
+  const colBg = builtinTheme?.colBg ?? (custom ? "" : dotToBg[dot] ?? fallback.colBg);
+  const colBgStyle = custom && dot.startsWith("#") && dot.length === 7 ? { backgroundColor: `${dot}1a` } : undefined;
+  const theme = builtinTheme ?? { ...fallback, bar: custom ? "" : (dot || fallback.bar) };
+  const barStyle = custom ? { backgroundColor: dot } : undefined;
 
   return (
-    <div className={cn("flex flex-col w-72 shrink-0 rounded-2xl border border-border/60 overflow-hidden shadow-xs", colBg)}>
+    <div className={cn("flex flex-col w-72 shrink-0 rounded-2xl border border-border/60 overflow-hidden shadow-xs", colBg)} style={colBgStyle}>
 
       {/* ── Column header ── */}
       <div className="px-3.5 pt-3.5 pb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {/* coloured top-bar dot */}
-          <span className={cn("size-2 rounded-full shrink-0", theme.bar)} />
+          <span className={cn("size-2 rounded-full shrink-0", theme.bar)} style={barStyle} />
           <span className="text-sm font-semibold text-foreground">{label}</span>
           <span className={cn("inline-flex items-center justify-center rounded-full text-[11px] font-bold px-1.5 min-w-[20px] h-5", theme.count)}>
             {issues.length}

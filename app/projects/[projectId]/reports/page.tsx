@@ -79,15 +79,15 @@ function RingChart({ value, color, size = 72 }: { value: number; color: string; 
 
 /* ─── stat card ─────────────────────────────────────────────── */
 function StatCard({
-  label, value, sub, icon: Icon, accent, ring, ringColor,
+  label, value, sub, icon: Icon, accent, ring, ringColor, className,
 }: {
   label: string; value: string | number; sub: string;
   icon: React.ElementType; accent: string;
-  ring?: number; ringColor?: string;
+  ring?: number; ringColor?: string; className?: string;
 }) {
   return (
-    <Card className="rounded-2xl overflow-hidden">
-      <CardContent className="p-4 flex items-start gap-3">
+    <Card className={cn("rounded-2xl overflow-hidden", className)}>
+      <CardContent className="p-3.5 flex items-start gap-3">
         <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0", accent)}>
           <Icon size={15} />
         </div>
@@ -223,7 +223,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
 
   return (
     <AppSidebar>
-      <div className="flex flex-col gap-4 p-4 sm:p-5 w-full">
+      <div className="flex flex-col gap-3 p-4 sm:p-5 w-full">
 
         {/* ── Header ── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -248,10 +248,13 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
           />
         )}
 
-        {/* ── KPI cards ── */}
+        {/* ── Bento grid ── */}
+        <div className="grid grid-cols-12 gap-3">
+
         {issues.length > 0 && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <>
             <StatCard
+              className="col-span-6 lg:col-span-3"
               label="Completion Rate"
               value={`${done}/${totalIssues}`}
               sub="issues completed"
@@ -261,6 +264,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
               ringColor="#22c55e"
             />
             <StatCard
+              className="col-span-6 lg:col-span-3"
               label="In Progress"
               value={inProgress}
               sub={`${reviewing} reviewing · ${todo} todo`}
@@ -270,6 +274,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
               ringColor="#3b82f6"
             />
             <StatCard
+              className="col-span-6 lg:col-span-3"
               label="Story Points"
               value={`${donePts} / ${totalPts}`}
               sub={`${ptsPct}% delivered`}
@@ -279,18 +284,19 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
               ringColor="#a855f7"
             />
             <StatCard
+              className="col-span-6 lg:col-span-3"
               label="Overdue Issues"
               value={overdue.length}
               sub={`${project.members.length} members · ${sprints.length} sprints`}
               icon={overdue.length > 0 ? Flame : Users}
               accent={overdue.length > 0 ? "bg-red-500/10 text-red-600" : "bg-amber-500/10 text-amber-600"}
             />
-          </div>
+          </>
         )}
 
         {/* ── Active sprint health ── */}
         {activeSprint && (
-          <Card className="rounded-2xl">
+          <Card className="rounded-2xl col-span-12">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -320,10 +326,8 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
           </Card>
         )}
 
-        {/* ── Charts row 1: status pie + issue timeline ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-          <Card className="rounded-2xl">
+          {/* ── Issues by Status ── */}
+          <Card className="rounded-2xl col-span-12 md:col-span-6 lg:col-span-4">
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <CardTitle className="text-sm">Issues by Status</CardTitle>
               <span className="text-xs text-muted-foreground">{totalIssues} total</span>
@@ -365,7 +369,8 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl">
+          {/* ── Issue Activity Over Time ── */}
+          <Card className="rounded-2xl col-span-12 md:col-span-6 lg:col-span-4">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Issue Activity Over Time</CardTitle>
               <CardDescription className="text-xs">Created vs completed by month</CardDescription>
@@ -399,12 +404,9 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
               )}
             </CardContent>
           </Card>
-        </div>
 
-        {/* ── Charts row 2: priority + sprint velocity ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-          <Card className="rounded-2xl">
+          {/* ── Issues by Priority ── */}
+          <Card className="rounded-2xl col-span-12 md:col-span-6 lg:col-span-4">
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <CardTitle className="text-sm">Issues by Priority</CardTitle>
               <span className="text-xs text-muted-foreground">{totalIssues} total</span>
@@ -469,7 +471,8 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl">
+          {/* ── Sprint Velocity ── */}
+          <Card className="rounded-2xl col-span-12 lg:col-span-6">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">Sprint Velocity</CardTitle>
               <CardDescription className="text-xs">Planned vs completed story points</CardDescription>
@@ -493,11 +496,66 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
               )}
             </CardContent>
           </Card>
-        </div>
+
+        {/* ── Overdue issues table (always shown to keep the row balanced) ── */}
+        <Card className={cn(
+          "rounded-2xl col-span-12 lg:col-span-6",
+          overdue.length > 0 && "border-red-200 dark:border-red-900/50",
+        )}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              {overdue.length > 0
+                ? <AlertTriangle size={14} className="text-red-500" />
+                : <CheckCircle2 size={14} className="text-emerald-500" />}
+              <CardTitle className={cn("text-sm", overdue.length > 0 ? "text-red-500" : "text-foreground")}>
+                Overdue Issues{overdue.length > 0 ? ` (${overdue.length})` : ""}
+              </CardTitle>
+            </div>
+            <CardDescription className="text-xs">
+              {overdue.length > 0
+                ? "These issues passed their due date and are not completed"
+                : "Issues past their due date will show up here"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-4 flex flex-col gap-2">
+            {overdue.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-1.5 py-6 text-center">
+                <span className="size-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                  <CheckCircle2 size={18} className="text-emerald-500" />
+                </span>
+                <p className="text-sm font-medium">No overdue issues</p>
+                <p className="text-xs text-muted-foreground">Everything's on track — nice work.</p>
+              </div>
+            ) : (
+              <>
+                {overdue.slice(0, 8).map((issue) => {
+                  const due = new Date(issue.dueDate!);
+                  const daysLate = Math.round((today.getTime() - due.getTime()) / 86400000);
+                  return (
+                    <div key={issue.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-red-500/5 border border-red-200/50 dark:border-red-900/30">
+                      <span className="size-2 rounded-full bg-red-500 shrink-0" />
+                      <span className="text-xs font-mono text-muted-foreground shrink-0">{issue.code}</span>
+                      <span className="text-sm flex-1 truncate">{issue.title}</span>
+                      <Badge variant="outline" className="text-xs font-normal shrink-0 text-red-500 border-red-200 dark:border-red-900">
+                        {daysLate}d late
+                      </Badge>
+                      <Badge variant="outline" className="text-xs font-normal shrink-0 hidden sm:inline-flex">
+                        {issue.assignees[0]?.name ?? "Unassigned"}
+                      </Badge>
+                    </div>
+                  );
+                })}
+                {overdue.length > 8 && (
+                  <p className="text-xs text-muted-foreground text-center pt-1">+{overdue.length - 8} more overdue issues</p>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         {/* ── Team workload ── */}
         {workload.length > 0 && (
-          <Card className="rounded-2xl">
+          <Card className="rounded-2xl col-span-12">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm">Team Workload</CardTitle>
               <CardDescription className="text-xs">Issue assignment and completion per member</CardDescription>
@@ -542,41 +600,7 @@ export default function ReportsPage({ params }: { params: Promise<{ projectId: s
           </Card>
         )}
 
-        {/* ── Overdue issues table ── */}
-        {overdue.length > 0 && (
-          <Card className="rounded-2xl border-red-200 dark:border-red-900/50">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={14} className="text-red-500" />
-                <CardTitle className="text-sm text-red-500">Overdue Issues ({overdue.length})</CardTitle>
-              </div>
-              <CardDescription className="text-xs">These issues passed their due date and are not completed</CardDescription>
-            </CardHeader>
-            <CardContent className="pb-4 flex flex-col gap-2">
-              {overdue.slice(0, 8).map((issue) => {
-                const due = new Date(issue.dueDate!);
-                const daysLate = Math.round((today.getTime() - due.getTime()) / 86400000);
-                return (
-                  <div key={issue.id} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-red-500/5 border border-red-200/50 dark:border-red-900/30">
-                    <span className="size-2 rounded-full bg-red-500 shrink-0" />
-                    <span className="text-xs font-mono text-muted-foreground shrink-0">{issue.code}</span>
-                    <span className="text-sm flex-1 truncate">{issue.title}</span>
-                    <Badge variant="outline" className="text-xs font-normal shrink-0 text-red-500 border-red-200 dark:border-red-900">
-                      {daysLate}d late
-                    </Badge>
-                    <Badge variant="outline" className="text-xs font-normal shrink-0 hidden sm:inline-flex">
-                      {issue.assignees[0]?.name ?? "Unassigned"}
-                    </Badge>
-                  </div>
-                );
-              })}
-              {overdue.length > 8 && (
-                <p className="text-xs text-muted-foreground text-center pt-1">+{overdue.length - 8} more overdue issues</p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
+        </div>
       </div>
     </AppSidebar>
   );

@@ -65,7 +65,7 @@ export function ProjectSettingsSheet({ open, onOpenChange, project }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex flex-col gap-0 p-0 w-full sm:max-w-md">
-        <SheetHeader className="px-6 py-5 border-b">
+        <SheetHeader className="px-6 py-3.5 border-b">
           <SheetTitle>Project Settings</SheetTitle>
         </SheetHeader>
 
@@ -117,7 +117,7 @@ export function ProjectSettingsSheet({ open, onOpenChange, project }: Props) {
           </div>
         </div>
 
-        <SheetFooter className="px-6 py-4 border-t">
+        <SheetFooter className="flex-row justify-end gap-2 px-6 py-4 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="cursor-pointer" disabled={saving}>
             Cancel
           </Button>
