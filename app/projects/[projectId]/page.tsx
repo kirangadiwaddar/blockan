@@ -20,7 +20,7 @@ import {
 import {
   Bug, BookOpen, CheckSquare, Zap,
   Grid3x2, ListTree, SquareStack, BookText,
-  CalendarDays, ArrowRight, Target, TrendingUp, UserPlus,
+  CalendarDays, ArrowRight, ArrowLeft, Target, TrendingUp, UserPlus,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
@@ -139,6 +139,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
         {/* ── Header ── */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
+            <Link
+              href="/projects"
+              aria-label="Back to projects"
+              className={buttonVariants({ variant: "ghost", size: "icon-sm", className: "shrink-0 cursor-pointer text-muted-foreground hover:text-foreground" })}
+            >
+              <ArrowLeft size={16} />
+            </Link>
             <div className={cn("avatar-orb size-9 rounded-full shrink-0", project.color)} />
             <div className="min-w-0">
               <div className="flex items-center gap-2">

@@ -247,12 +247,12 @@ export default function DashboardPage() {
 
   return (
     <AppSidebar>
-      <div className="flex flex-col gap-6 p-6 mx-auto w-full">
+      <div className="flex flex-col gap-4 p-6 mx-auto w-full">
 
-        {/* ── 3-column top row ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {/* Welcome block */}
-          <Card className="rounded-xl relative overflow-hidden">
+        {/* ── Bento: hero + sprint + team ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-12 gap-4">
+          {/* Welcome hero */}
+          <Card className="rounded-2xl relative overflow-hidden col-span-2 lg:col-span-4 transition-shadow hover:shadow-md">
             <CardContent className="flex flex-col gap-3 h-full justify-between">
               <div
                 className="absolute inset-0 z-0"
@@ -265,32 +265,18 @@ export default function DashboardPage() {
                 <h1 className="text-xl font-bold mb-2">{displayName} 👋</h1>
                 <p className="text-xs text-muted-foreground mt-0.5">{isOrgAdmin ? "Here's what's happening across all projects today." : "Here's your assigned work across projects today."}</p>
               </div>
-              <div className="flex items-center gap-4 flex-wrap">
-                <div>
-                  <p className="text-lg font-bold leading-none">{totalIssues - doneIssues}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{isOrgAdmin ? "Open" : "My Open"}</p>
-                </div>
-                <Separator orientation="vertical" className="h-7" />
-                <div>
-                  <p className="text-lg font-bold leading-none">{inProgress}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">In Progress</p>
-                </div>
-                <Separator orientation="vertical" className="h-7" />
-                <div>
-                  <p className="text-lg font-bold leading-none">{doneIssues}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Done</p>
-                </div>
-                <Separator orientation="vertical" className="h-7" />
-                <div>
-                  <p className="text-lg font-bold leading-none text-red-500">{overdue}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Overdue</p>
-                </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary" className="text-[11px] font-normal">{totalIssues} total issues</Badge>
+                <Badge variant="secondary" className="text-[11px] font-normal">{projects.length} project{projects.length !== 1 ? "s" : ""}</Badge>
+                {overdue > 0 && (
+                  <Badge className="text-[11px] font-normal bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400">{overdue} overdue</Badge>
+                )}
               </div>
             </CardContent>
           </Card>
 
           {/* Sprint card */}
-          <Card className="rounded-xl relative">
+          <Card className="rounded-2xl relative col-span-2 lg:col-span-4 transition-shadow hover:shadow-md">
             <CardContent className="flex flex-col gap-2.5 h-full justify-between">
 
               <div
@@ -317,7 +303,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Team card */}
-          <Card className="rounded-xl relative">
+          <Card className="rounded-2xl relative col-span-2 lg:col-span-4 transition-shadow hover:shadow-md">
             <CardContent className="flex flex-col gap-2.5 h-full justify-between">
               <div
                 className="absolute inset-0 z-0"
@@ -344,22 +330,22 @@ export default function DashboardPage() {
                 </AvatarGroup>
 
                 <p className="text-muted-foreground px-2 text-xs">
-                  Full Access Control to <strong className="text-foreground font-medium">Developers</strong>.
+                  Access control based on roles.
                 </p>
               </div>
               </div>
-              <Link href="/projects" className={buttonVariants({ variant: "secondary", size: "sm", className: "h-6 text-[11px] px-2 w-fit cursor-pointer" })}>
-                All Projects <ArrowRight size={11} />
+              <Link href="/teams" className={buttonVariants({ variant: "secondary", size: "sm", className: "h-6 text-[11px] px-2 w-fit cursor-pointer" })}>
+                All Team <ArrowRight size={11} />
               </Link>
             </CardContent>
           </Card>
         </div>
 
-        {/* ── Projects table + Priority donut side by side ── */}
+        {/* ── Recent issues + Priority donut ── */}
         <div className="grid grid-cols-12 gap-4">
-          
-          <div className="col-span-12 xl:col-span-8">
-            <Card className="rounded-2xl h-full">
+
+          <div className="col-span-12 lg:col-span-8">
+            <Card className="rounded-2xl h-full transition-shadow hover:shadow-md">
               <CardHeader className="border-b px-6">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">{isOrgAdmin ? "Recent Issues" : "My Recent Issues"}</CardTitle>
@@ -443,7 +429,7 @@ export default function DashboardPage() {
 
           {/* Priority donut */}
           <div className="col-span-12 lg:col-span-4">
-            <Card className="rounded-2xl h-full">
+            <Card className="rounded-2xl h-full transition-shadow hover:shadow-md">
               <CardHeader className="border-b px-5">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Issues by Priority</CardTitle>
@@ -485,7 +471,7 @@ export default function DashboardPage() {
 
           {/* Projects table */}
           <div className="col-span-12 lg:col-span-8">
-            <Card className="rounded-2xl h-full">
+            <Card className="rounded-2xl h-full transition-shadow hover:shadow-md">
               <CardHeader className="border-b px-6">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">Projects</CardTitle>
@@ -562,7 +548,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          <div className="col-span-12 xl:col-span-4">
+          <div className="col-span-12 lg:col-span-4">
             <RecentActivities />
           </div>
         </div>

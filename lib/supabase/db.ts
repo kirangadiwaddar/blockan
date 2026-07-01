@@ -471,7 +471,7 @@ export async function createIssue(data: {
     code: row.code ?? `ISSUE-${row.id.slice(-4)}`,
     title: row.title,
     description: row.description ?? undefined,
-    type: (row.type as Issue["type"]) ?? "Task",
+    type: (toAppType(row.type) as Issue["type"]) ?? "Task",
     status: toAppStatus(row.status),
     priority: (row.priority as Issue["priority"]) ?? "Medium",
     assignees: assigneeMember ? [assigneeMember] : [],
