@@ -15,30 +15,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  Bell, MessageSquare, UserCheck, AtSign, UserPlus,
-  CheckCheck, Check,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-
-const typeIcon: Record<AppNotification["type"], React.ElementType> = {
-  comment:   MessageSquare,
-  assigned:  UserCheck,
-  mentioned: AtSign,
-  invite:    UserPlus,
-};
-const typeColor: Record<AppNotification["type"], string> = {
-  comment:   "text-blue-500",
-  assigned:  "text-green-500",
-  mentioned: "text-purple-500",
-  invite:    "text-amber-500",
-};
-const typeBg: Record<AppNotification["type"], string> = {
-  comment:   "bg-blue-500/10",
-  assigned:  "bg-green-500/10",
-  mentioned: "bg-purple-500/10",
-  invite:    "bg-amber-500/10",
-};
+import { Bell, CheckCheck, Check } from "lucide-react";
+import { getInitials } from "@/lib/utils";
 
 function relTime(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -73,6 +51,7 @@ export default function NotificationsPage() {
 
   const hrefFor = (n: AppNotification) => {
     if (!n.issueId) return "/dashboard";
+    if (n.projectSlug) return `/projects/${n.projectSlug}/issues/${n.issueId}`;
     const issue = issues.find((i) => i.id === n.issueId);
     if (issue?.projectId) return `/projects/${issue.projectId}/issues/${n.issueId}`;
     return "/dashboard";
@@ -149,23 +128,19 @@ export default function NotificationsPage() {
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Unread</p>
             <div className="flex flex-col gap-1">
               {grouped.unread.map((n) => {
-                const Icon = typeIcon[n.type];
                 return (
                   <button
                     key={n.id}
                     onClick={() => handleRead(n)}
                     className="flex items-start gap-3 p-4 rounded-xl border bg-muted/30 hover:bg-muted/60 transition-colors text-left cursor-pointer w-full group"
                   >
-                    <div className="relative shrink-0">
+                    <div className="shrink-0">
                       <Avatar className="size-9">
                         <AvatarImage src={n.actorAvatar} alt={n.actorName} />
-                        <AvatarFallback className="text-xs">
-                          {n.actorName?.[0]?.toUpperCase() ?? "?"}
+                        <AvatarFallback className="text-xs" colorSeed={n.actorId}>
+                          {getInitials(n.actorName)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className={cn("absolute -bottom-0.5 -right-0.5 size-4 rounded-full flex items-center justify-center", typeBg[n.type])}>
-                        <Icon size={9} className={typeColor[n.type]} />
-                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{n.title}</p>
@@ -188,23 +163,19 @@ export default function NotificationsPage() {
             </p>
             <div className="flex flex-col gap-1">
               {grouped.read.map((n) => {
-                const Icon = typeIcon[n.type];
                 return (
                   <button
                     key={n.id}
                     onClick={() => handleRead(n)}
                     className="flex items-start gap-3 p-4 rounded-xl border hover:bg-muted/40 transition-colors text-left cursor-pointer w-full"
                   >
-                    <div className="relative shrink-0">
+                    <div className="shrink-0">
                       <Avatar className="size-9">
                         <AvatarImage src={n.actorAvatar} alt={n.actorName} />
-                        <AvatarFallback className="text-xs">
-                          {n.actorName?.[0]?.toUpperCase() ?? "?"}
+                        <AvatarFallback className="text-xs" colorSeed={n.actorId}>
+                          {getInitials(n.actorName)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className={cn("absolute -bottom-0.5 -right-0.5 size-4 rounded-full flex items-center justify-center", typeBg[n.type])}>
-                        <Icon size={9} className={typeColor[n.type]} />
-                      </span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-muted-foreground truncate">{n.title}</p>

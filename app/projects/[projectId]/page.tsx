@@ -20,8 +20,9 @@ import {
 import {
   Bug, BookOpen, CheckSquare, Zap,
   Grid3x2, ListTree, SquareStack, BookText,
-  CalendarDays, ArrowRight, ArrowLeft, Target, TrendingUp, UserPlus,
+  CalendarDays, ArrowRight, ArrowLeft, Target, TrendingUp, UserPlus, RefreshCw,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NotFoundBlock } from "@/components/ui/not-found-block";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -62,13 +63,27 @@ function fmt(d: string) {
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = React.use(params);
-  const { sprintsForProject, projectBySlug, loading: projectsLoading } = useProjects();
-  const { issues: allCtxIssues, loading: issuesLoading } = useIssues();
+  const { sprintsForProject, projectBySlug, loading: projectsLoading, refreshProjects } = useProjects();
+  const { issues: allCtxIssues, loading: issuesLoading, refreshIssues } = useIssues();
 
   const project = projectBySlug(projectId);
   const issues  = allCtxIssues.filter((i) => i.projectId === project?.id);
   const sprints = sprintsForProject(project?.id ?? projectId);
   const [inviteOpen, setInviteOpen] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const handleRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([refreshProjects(), refreshIssues()]);
+      toast.success("Project refreshed");
+    } catch {
+      toast.error("Couldn't refresh — try again.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const role       = useProjectRole(projectId);
   const isAdmin    = canManageSprints(role); // owner/admin only
 
@@ -169,6 +184,17 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
                 <AvatarGroupCount className="size-7 text-xs">+{project.members.length - 5}</AvatarGroupCount>
               )}
             </AvatarGroup>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="cursor-pointer"
+              title="Refresh project"
+              aria-label="Refresh project"
+            >
+              <RefreshCw size={14} className={cn(refreshing && "animate-spin")} />
+            </Button>
             {isAdmin && (
               <Button variant="outline" className="gap-1.5 cursor-pointer" onClick={() => setInviteOpen(true)}>
                 <UserPlus size={14} /> Invite

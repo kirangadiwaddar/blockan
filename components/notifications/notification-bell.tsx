@@ -10,8 +10,8 @@ import {
 } from "@/lib/supabase/notification-actions";
 import { useIssues } from "@/lib/issues-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, MessageSquare, UserCheck, AtSign, Check, CheckCheck, UserPlus, Layers } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Bell, MessageSquare, UserCheck, AtSign, Check, CheckCheck, UserPlus } from "lucide-react";
+import { cn, getInitials } from "@/lib/utils";
 import Link from "next/link";
 
 function relTime(iso: string) {
@@ -22,19 +22,6 @@ function relTime(iso: string) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-const typeIcon: Record<AppNotification["type"], React.ElementType> = {
-  comment:   MessageSquare,
-  assigned:  UserCheck,
-  mentioned: AtSign,
-  invite:    UserPlus,
-};
-
-const typeColor: Record<AppNotification["type"], string> = {
-  comment:   "text-blue-500",
-  assigned:  "text-green-500",
-  mentioned: "text-purple-500",
-  invite:    "text-amber-500",
-};
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -103,9 +90,12 @@ export function NotificationBell() {
     if (userId) await markAllNotificationsReadAction(userId);
   };
 
-  // Build correct href for a notification: look up issue in context to get projectId
+  // Build correct href for a notification. Prefer the project slug resolved
+  // server-side (works even if the recipient hasn't loaded that issue); fall
+  // back to the local issues context.
   const hrefFor = (n: AppNotification): string => {
     if (!n.issueId) return "/dashboard";
+    if (n.projectSlug) return `/projects/${n.projectSlug}/issues/${n.issueId}`;
     const issue = issues.find((i) => i.id === n.issueId);
     if (issue?.projectId) return `/projects/${issue.projectId}/issues/${n.issueId}`;
     return "/dashboard";
@@ -124,7 +114,7 @@ export function NotificationBell() {
       >
         <Bell size={16} />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-destructive text-destructive-foreground text-[10px] font-semibold rounded-full flex items-center justify-center px-1 leading-none">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-semibold rounded-full flex items-center justify-center px-1 leading-none ring-2 ring-background">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -195,8 +185,6 @@ export function NotificationBell() {
             ) : (
               <div className="divide-y">
                 {notifications.map((n) => {
-                  const Icon = typeIcon[n.type] ?? Layers;
-                  const color = typeColor[n.type] ?? "text-muted-foreground";
                   const href = hrefFor(n);
                   const content = (
                     <div
@@ -205,17 +193,14 @@ export function NotificationBell() {
                         !n.read ? "bg-primary/5 hover:bg-primary/8" : "hover:bg-muted/50"
                       )}
                     >
-                      {/* Actor avatar with type icon badge */}
-                      <div className="relative shrink-0">
+                      {/* Actor avatar */}
+                      <div className="shrink-0">
                         <Avatar className="size-8">
                           <AvatarImage src={n.actorAvatar} alt={n.actorName} />
-                          <AvatarFallback className="text-xs bg-muted">
-                            {n.actorName?.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() ?? "?"}
+                          <AvatarFallback className="text-xs" colorSeed={n.actorId}>
+                            {getInitials(n.actorName)}
                           </AvatarFallback>
                         </Avatar>
-                        <div className={cn("absolute -bottom-0.5 -right-0.5 size-4 rounded-full bg-background flex items-center justify-center border", color)}>
-                          <Icon size={9} />
-                        </div>
                       </div>
 
                       {/* Content */}

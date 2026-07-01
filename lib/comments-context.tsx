@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getInitials } from "@/lib/utils";
 
 export type Comment = {
   id: string;
@@ -30,12 +31,7 @@ const Ctx = createContext<CommentsCtx>({
 
 function rowToComment(row: any, profile: any): Comment {
   const authorName = profile?.full_name ?? "Unknown";
-  const authorInitials = authorName
-    .split(" ")
-    .slice(0, 2)
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase();
+  const authorInitials = getInitials(authorName);
   return {
     id: row.id,
     issueId: row.issue_id,
